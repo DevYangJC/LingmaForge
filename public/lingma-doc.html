@@ -1,0 +1,557 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>灵码工坊 - 文档中心</title>
+  <link rel="stylesheet" href="css/shared.css" />
+  <link rel="stylesheet" href="css/doc.css" />
+  <style>
+    /* Gradient highlight dot for active menu item */
+    .menu a.active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 13px;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--cyan), var(--mint));
+    }
+  </style>
+</head>
+<body>
+  <!-- SVG Symbols for common icons -->
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+    <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="external-link" viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></symbol>
+    
+    <symbol id="rocket" viewBox="0 0 24 24"><path d="M4.5 16.5c-1.5 1.25-2.5 3.5-2.5 3.5s2.25-1 3.5-2.5L16.5 6.5c1.5-1.5 1.5-2.5 1.5-2.5s-1 0-2.5 1.5L4.5 16.5Z"/><path d="m12 8 4 4"/><path d="M9 15c0 0-2.5.5-3.5 1.5M15 9c0 0 .5-2.5 1.5-3.5"/></symbol>
+    <symbol id="cube" viewBox="0 0 24 24"><path d="m12 2 8 4.5v9L12 20l-8-4.5v-9z"/><path d="M4 6.5 12 11l8-4.5"/><path d="M12 11v9"/></symbol>
+    <symbol id="spark" viewBox="0 0 24 24"><path d="M12 2 9 10 2 12l7 2 3 8 3-8 7-2-7-2-3-8Z"/></symbol>
+    <symbol id="cloud" viewBox="0 0 24 24"><path d="M17.5 19A5.5 5.5 0 0 0 18 8h-1.26a8 8 0 1 0-11.62 9"/><polyline points="12 12 12 21"/><polyline points="9 15 12 12 15 15"/></symbol>
+    <symbol id="file-code" viewBox="0 0 24 24"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></symbol>
+    <symbol id="database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></symbol>
+    
+    <symbol id="copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+    <symbol id="link" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></symbol>
+    
+    <symbol id="feedback" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="users" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></symbol>
+    <symbol id="send" viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></symbol>
+    <symbol id="globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></symbol>
+    <symbol id="document" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></symbol>
+  </svg>
+
+  <div class="shot">
+    <!-- Navigation Bar -->
+    <nav class="site-nav">
+      <div class="brand">
+        <div class="brand-symbol"><img src="brand/lingma-forge-logo.png" alt="灵码工坊 Logo"></div>
+        <div class="brand-text">灵码工坊</div>
+      </div>
+      <div class="menu">
+        <a href="lingma-homepage.html">首页</a>
+        <a href="lingma-creative.html">创意中心</a>
+        <a href="lingma-workbench.html">工作台</a>
+        <a href="lingma-subscription.html">订阅</a>
+        <a href="lingma-pricing.html">价格</a>
+        <a class="active" href="lingma-doc.html">文档</a>
+      </div>
+      <div class="nav-actions">
+        <span class="sun"><svg class="icon"><use href="#sun"/></svg></span>
+        <button class="btn" onclick="location.href='lingma-auth.html'">登录</button>
+        <button class="btn primary" onclick="location.href='lingma-auth.html#register'">免费开始</button>
+        <a href="lingma-profile.html" class="chat-avatar" style="border: 2px solid #00aab3; cursor:pointer; width:34px; height:34px; border-radius:50%; overflow:hidden; display:flex; align-items:center; justify-content:center; background:#fff;" title="个人中心"><img src="brand/hero/lingma-forge-mascot-v2.png" alt="User Avatar" style="width:120%; height:120%; object-fit:cover; transform:translateY(1.5px);"></a>
+      </div>
+    </nav>
+
+    <!-- Document Page Wrapper -->
+    <div class="doc-view">
+      <div class="doc-layout-container">
+        
+        <!-- Search and Action Sub-header -->
+        <header class="doc-sub-header">
+          <div class="doc-center-title-box">
+            <div class="doc-center-icon">
+              <svg class="icon"><use href="#document"/></svg>
+            </div>
+            <div class="doc-title-text">
+              <h2>文档中心</h2>
+              <p>开发者文档与 API 参考</p>
+            </div>
+          </div>
+          <div class="doc-search-actions">
+            <!-- Search bar -->
+            <div class="doc-search-bar-wrapper">
+              <svg class="icon search-icon"><use href="#search"/></svg>
+              <input type="text" class="doc-search-input" placeholder="搜索文档、API 或教程..." />
+              <span class="doc-shortcut-badge">⌘ K</span>
+            </div>
+            <!-- Version select -->
+            <button class="doc-select-btn">
+              <span>v2.4</span>
+              <svg class="icon" style="width:12px; height:12px; color:var(--doc-text-secondary);"><use href="#chevron-down"/></svg>
+            </button>
+            <!-- Github button -->
+            <a href="https://github.com" target="_blank" class="doc-github-btn">
+              <svg class="icon" style="width:16px; height:16px;"><use href="#file-code"/></svg>
+              <span>在 GitHub 上查看</span>
+              <svg class="icon" style="width:12px; height:12px; color:#bdc8d3;"><use href="#external-link"/></svg>
+            </a>
+            <!-- Language select -->
+            <button class="doc-select-btn">
+              <svg class="icon" style="width:16px; height:16px;"><use href="#globe"/></svg>
+              <span>简体中文</span>
+              <svg class="icon" style="width:12px; height:12px; color:var(--doc-text-secondary);"><use href="#chevron-down"/></svg>
+            </button>
+          </div>
+        </header>
+
+        <!-- 3-Column main content layout -->
+        <div class="doc-main-layout">
+          
+          <!-- Column 1: Left Accordion Sidebar -->
+          <aside class="doc-left-sidebar">
+            
+            <!-- Group 1: 快速开始 -->
+            <div class="sidebar-group">
+              <div class="sidebar-group-header">
+                <span>快速开始</span>
+                <svg class="icon"><use href="#chevron-down"/></svg>
+              </div>
+              <div class="sidebar-links">
+                <a href="#" class="sidebar-link-item active">
+                  <svg class="icon"><use href="#rocket"/></svg>
+                  <span>快速开始</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#sliders"/></svg>
+                  <span>安装与配置</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#cube"/></svg>
+                  <span>第一个应用</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#info"/></svg>
+                  <span>常见问题</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Group 2: 核心概念 -->
+            <div class="sidebar-group">
+              <div class="sidebar-group-header">
+                <span>核心概念</span>
+                <svg class="icon"><use href="#chevron-down"/></svg>
+              </div>
+              <div class="sidebar-links">
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#user"/></svg>
+                  <span>灵感模型</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#adjustments"/></svg>
+                  <span>智能节点</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#file-code"/></svg>
+                  <span>代码符号</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#spark"/></svg>
+                  <span>创意火花</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#cube"/></svg>
+                  <span>工坊基座</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Group 3: AI 生成 -->
+            <div class="sidebar-group">
+              <div class="sidebar-group-header">
+                <span>AI 生成</span>
+                <svg class="icon"><use href="#chevron-down"/></svg>
+              </div>
+              <div class="sidebar-links">
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#zap"/></svg>
+                  <span>对话生成</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#file-code"/></svg>
+                  <span>模板与提示词</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#sliders"/></svg>
+                  <span>样式优化</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#spark"/></svg>
+                  <span>多模态生成</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Group 4: 项目部署 -->
+            <div class="sidebar-group">
+              <div class="sidebar-group-header">
+                <span>项目部署</span>
+                <svg class="icon"><use href="#chevron-down"/></svg>
+              </div>
+              <div class="sidebar-links">
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#info"/></svg>
+                  <span>环境要求</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#cloud"/></svg>
+                  <span>部署到云端</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#zap"/></svg>
+                  <span>CI/CD 集成</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#clock"/></svg>
+                  <span>监控与日志</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Group 5: API 参考 -->
+            <div class="sidebar-group">
+              <div class="sidebar-group-header">
+                <span>API 参考</span>
+                <svg class="icon"><use href="#chevron-down"/></svg>
+              </div>
+              <div class="sidebar-links">
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#file-code"/></svg>
+                  <span>API 概览</span>
+                </a>
+              </div>
+            </div>
+
+            <!-- Group 6: SDK -->
+            <div class="sidebar-group">
+              <div class="sidebar-group-header">
+                <span>SDK</span>
+                <svg class="icon"><use href="#chevron-down"/></svg>
+              </div>
+              <div class="sidebar-links">
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#database"/></svg>
+                  <span>JavaScript SDK</span>
+                </a>
+                <a href="#" class="sidebar-link-item">
+                  <svg class="icon"><use href="#database"/></svg>
+                  <span>Python SDK</span>
+                </a>
+              </div>
+            </div>
+
+          </aside>
+
+          <!-- Column 2: Central Document Content -->
+          <main class="doc-content-area">
+            
+            <!-- Breadcrumbs -->
+            <div class="doc-breadcrumb">
+              <span>首页</span>
+              <span class="doc-breadcrumb-sep">&gt;</span>
+              <span>快速开始</span>
+              <span class="doc-breadcrumb-sep">&gt;</span>
+              <span style="color:var(--doc-text-primary); font-weight:700;">快速开始</span>
+            </div>
+
+            <!-- H1 -->
+            <h1 class="doc-main-title">快速开始</h1>
+            <p class="doc-intro-text">
+              在 5 分钟内完成 灵码工坊 的安装并创建你的第一个 AI 应用。灵感一触即发，编码从未如此简单。
+            </p>
+
+            <!-- H2 Section 1 -->
+            <h3 class="doc-section-title" id="sec-1">1. 安装灵码工坊 CLI</h3>
+            <p class="doc-body-p">
+              灵码工坊 提供功能强大的命令行工具，帮助你快速创建、开发和部署项目。
+            </p>
+
+            <!-- Code tabs & block -->
+            <div class="doc-code-tabs">
+              <button class="doc-code-tab-btn active">npm</button>
+              <button class="doc-code-tab-btn">pnpm</button>
+              <button class="doc-code-tab-btn">yarn</button>
+            </div>
+            <div class="doc-code-container">
+              <div class="doc-code-content">
+                <span class="code-line-nums">1</span>
+                <span class="code-lines-text"><span class="code-keyword">npm</span> <span class="code-command">install</span> <span class="code-param">-g @lingma/forge-cli</span></span>
+              </div>
+              <button class="doc-code-copy-btn">
+                <svg class="icon"><use href="#copy"/></svg>
+                <span>复制</span>
+              </button>
+            </div>
+
+            <!-- Mascot alert tip -->
+            <div class="doc-tip-box">
+              <div class="doc-tip-avatar">
+                <img src="brand/hero/lingma-forge-mascot-v2.png" alt="Mascot Avatar" />
+              </div>
+              <div class="doc-tip-text">
+                <strong>提示:</strong> 安装完成后，可运行 <code>forge --version</code> 验证是否成功安装。
+              </div>
+            </div>
+
+            <!-- H2 Section 2 -->
+            <h3 class="doc-section-title" id="sec-2">2. 创建并启动你的第一个项目</h3>
+            <p class="doc-body-p">
+              使用以下命令创建一个新项目，并启动本地开发服务器。
+            </p>
+
+            <div class="doc-code-container">
+              <div class="doc-code-content">
+                <span class="code-line-nums">1<br>2</span>
+                <span class="code-lines-text"><span class="code-keyword">forge</span> <span class="code-command">create</span> <span class="code-param">my-first-app</span><br><span class="code-keyword">cd</span> <span class="code-param">my-first-app</span> <span class="code-keyword">&&</span> <span class="code-keyword">forge</span> <span class="code-command">dev</span></span>
+              </div>
+              <button class="doc-code-copy-btn">
+                <svg class="icon"><use href="#copy"/></svg>
+                <span>复制</span>
+              </button>
+            </div>
+
+            <!-- H2 Section 3 -->
+            <h3 class="doc-section-title" id="sec-3">3. 在浏览器中预览</h3>
+            <p class="doc-body-p">
+              打开浏览器访问 <code style="background: #f4f8fb; padding: 2px 6px; border-radius: 4px; color: var(--doc-primary-color); font-weight:700;">http://localhost:5173</code>，即可看到默认的示例应用。
+            </p>
+
+            <!-- Next Steps -->
+            <h3 class="doc-section-title" id="sec-next" style="border-bottom:none; margin-bottom: 8px;">下一步</h3>
+            <div class="doc-next-grid">
+              
+              <!-- Card 1 -->
+              <a href="#" class="doc-next-card">
+                <div class="doc-next-left">
+                  <div class="doc-next-icon-box">
+                    <svg class="icon"><use href="#cube"/></svg>
+                  </div>
+                  <div class="doc-next-info">
+                    <h4>了解核心概念</h4>
+                    <p>理解灵码工坊的核心组件与工作原理</p>
+                  </div>
+                </div>
+                <svg class="icon chevron-next"><use href="#chevron-right"/></svg>
+              </a>
+
+              <!-- Card 2 -->
+              <a href="#" class="doc-next-card">
+                <div class="doc-next-left">
+                  <div class="doc-next-icon-box">
+                    <svg class="icon"><use href="#spark"/></svg>
+                  </div>
+                  <div class="doc-next-info">
+                    <h4>探索 AI 生成</h4>
+                    <p>学习如何使用对话与模板生成应用</p>
+                  </div>
+                </div>
+                <svg class="icon chevron-next"><use href="#chevron-right"/></svg>
+              </a>
+
+              <!-- Card 3 -->
+              <a href="#" class="doc-next-card">
+                <div class="doc-next-left">
+                  <div class="doc-next-icon-box">
+                    <svg class="icon"><use href="#file-code"/></svg>
+                  </div>
+                  <div class="doc-next-info">
+                    <h4>查看 API 参考</h4>
+                    <p>查询完整的 API 文档与示例</p>
+                  </div>
+                </div>
+                <svg class="icon chevron-next"><use href="#chevron-right"/></svg>
+              </a>
+
+              <!-- Card 4 -->
+              <a href="#" class="doc-next-card">
+                <div class="doc-next-left">
+                  <div class="doc-next-icon-box">
+                    <svg class="icon"><use href="#cloud"/></svg>
+                  </div>
+                  <div class="doc-next-info">
+                    <h4>部署你的应用</h4>
+                    <p>将应用部署到云端对外提供服务</p>
+                  </div>
+                </div>
+                <svg class="icon chevron-next"><use href="#chevron-right"/></svg>
+              </a>
+
+            </div>
+
+          </main>
+
+          <!-- Column 3: Right Toc Sidebar -->
+          <aside class="doc-right-sidebar">
+            
+            <!-- In-page TOC card -->
+            <div class="right-sidebar-card">
+              <div class="right-card-title">本页导航</div>
+              <nav class="toc-list">
+                <a href="#sec-1" class="toc-item active">
+                  <svg class="icon"><use href="#link"/></svg>
+                  <span>1. 安装灵码工坊 CLI</span>
+                </a>
+                <a href="#sec-2" class="toc-item">
+                  <svg class="icon"><use href="#link"/></svg>
+                  <span>2. 创建并启动项目</span>
+                </a>
+                <a href="#sec-3" class="toc-item">
+                  <svg class="icon"><use href="#link"/></svg>
+                  <span>3. 在浏览器中预览</span>
+                </a>
+                <a href="#sec-next" class="toc-item">
+                  <svg class="icon"><use href="#link"/></svg>
+                  <span>下一步</span>
+                </a>
+                <a href="#" class="toc-item">
+                  <svg class="icon"><use href="#link"/></svg>
+                  <span>常见问题</span>
+                </a>
+              </nav>
+            </div>
+
+            <!-- Help and feedback card -->
+            <div class="right-sidebar-card">
+              <div class="right-card-title">帮助与反馈</div>
+              <div class="help-list">
+                
+                <div class="help-item">
+                  <svg class="icon"><use href="#feedback"/></svg>
+                  <div class="help-item-info">
+                    <h5>文档反馈</h5>
+                    <p>帮助我们改进文档</p>
+                  </div>
+                </div>
+
+                <div class="help-item">
+                  <svg class="icon"><use href="#users"/></svg>
+                  <div class="help-item-info">
+                    <h5>加入开发者社区</h5>
+                    <p>与开发者交流与提问</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- AI Assistant card -->
+            <div class="right-sidebar-card ai-assistant-card">
+              <div class="ai-assistant-header">
+                <div class="ai-assistant-title">
+                  <svg class="icon" style="stroke-width:2.5;"><use href="#spark"/></svg>
+                  <span>灵码助手</span>
+                </div>
+                <span class="ai-status-online">
+                  <span class="ai-status-dot"></span>
+                  在线
+                </span>
+              </div>
+              
+              <div class="ai-chat-bubble">
+                👋 你好！我是灵码助手，可以帮你快速找到文档、解答问题或生成代码示例。
+              </div>
+
+              <div class="ai-quick-actions">
+                <button class="ai-action-btn">
+                  <span>如何集成到 Next.js 项目？</span>
+                  <svg class="icon"><use href="#chevron-right"/></svg>
+                </button>
+                <button class="ai-action-btn">
+                  <span>API 调用失败如何排查？</span>
+                  <svg class="icon"><use href="#chevron-right"/></svg>
+                </button>
+                <button class="ai-action-btn">
+                  <span>生成一个用户登录页面示例</span>
+                  <svg class="icon"><use href="#chevron-right"/></svg>
+                </button>
+              </div>
+
+              <div class="ai-chat-input-wrapper">
+                <input type="text" class="ai-chat-input" placeholder="向我提问..." />
+                <button class="ai-send-btn">
+                  <svg class="icon"><use href="#send"/></svg>
+                </button>
+              </div>
+            </div>
+
+          </aside>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Page Footer -->
+    <footer class="doc-footer">
+      <div class="doc-footer-left">
+        <span class="brand-logo-text">
+          <img src="brand/lingma-forge-logo.png" alt="Logo" />
+          灵码工坊
+        </span>
+        <div style="width:1px; height:14px; background:#eef3f7;"></div>
+        <div class="doc-footer-info-row">
+          <span>API 状态 <i class="status-dot-green"></i> 正常</span>
+          <span>服务版本 v2.4.0</span>
+          <span>更新日志 2025-05-20</span>
+        </div>
+      </div>
+      <div class="doc-footer-links">
+        <a href="https://github.com" target="_blank">GitHub</a>
+        <a href="#">社区论坛</a>
+        <a href="#">联系我们</a>
+        <a href="#">状态页面</a>
+      </div>
+      <div class="doc-footer-right">
+        &copy; 2025 灵码工坊 &middot; 让创造更简单
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // In-page navigation scroll activation highlight
+    const tocItems = document.querySelectorAll('.toc-item');
+    tocItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        const href = item.getAttribute('href');
+        if (href.startsWith('#')) {
+          tocItems.forEach(i => i.classList.remove('active'));
+          item.classList.add('active');
+        }
+      });
+    });
+
+    // Accordion sidebar folding simulation
+    const headers = document.querySelectorAll('.sidebar-group-header');
+    headers.forEach(header => {
+      header.addEventListener('click', () => {
+        const links = header.nextElementSibling;
+        const arrow = header.querySelector('.icon');
+        if (links.style.display === 'none') {
+          links.style.display = 'flex';
+          arrow.style.transform = 'rotate(0deg)';
+        } else {
+          links.style.display = 'none';
+          arrow.style.transform = 'rotate(-90deg)';
+        }
+      });
+    });
+  </script>
+</body>
+</html>

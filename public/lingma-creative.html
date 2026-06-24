@@ -37,15 +37,15 @@
       <div class="menu">
         <a href="lingma-homepage.html">首页</a>
         <a class="active" href="lingma-creative.html">创意中心</a>
-        <a href="#">工作台</a>
-        <a href="#">订阅</a>
-        <a href="#">价格</a>
-        <a href="#">文档</a>
+        <a href="lingma-workbench.html">工作台</a>
+        <a href="lingma-subscription.html">订阅</a>
+        <a href="lingma-pricing.html">价格</a>
+        <a href="lingma-doc.html">文档</a>
       </div>
       <div class="nav-actions">
         <span class="sun"><svg class="icon"><use href="#sun"/></svg></span>
-        <button class="btn">登录</button>
-        <button class="btn primary">免费开始</button>
+        <button class="btn" onclick="location.href='lingma-auth.html'">登录</button>
+        <button class="btn primary" onclick="location.href='lingma-auth.html#register'">免费开始</button>
       </div>
     </nav>
 
@@ -90,18 +90,101 @@
         <section class="cc-center">
           <section class="cc-hero">
             <div class="cc-hero-orbit"></div>
-            <img class="cc-hero-mascot" src="brand/灵感工坊.png" alt="灵码工坊吉祥物">
-            <div class="cc-hero-copy">
-              <span class="cc-badge dark"><svg class="icon" style="width:15px;height:15px"><use href="#shield"/></svg>精选推荐</span>
-              <h2>AI 会员订阅商城</h2>
-              <p>开箱即用的订阅电商系统，支持多套餐、优惠券、自动续费和营销活动，助力快速变现。</p>
-              <div class="cc-stat-row">
-                <div class="cc-stat"><strong>1287</strong><span>订阅量</span></div><div class="cc-stat"><strong>4.9</strong><span>评分</span></div><div class="cc-stat"><strong>1.2k</strong><span>收藏</span></div><div class="cc-stat"><strong>98%</strong><span>好评率</span></div>
+            
+            <div class="cc-hero-slides">
+              <!-- Slide 1: AI 会员订阅商城 -->
+              <div class="cc-hero-slide active">
+                <img class="cc-hero-mascot" src="brand/灵感工坊.png" alt="灵码工坊吉祥物">
+                <div class="cc-hero-copy">
+                  <span class="cc-badge dark"><svg class="icon" style="width:15px;height:15px"><use href="#shield"/></svg>精选推荐</span>
+                  <h2>AI 会员订阅商城</h2>
+                  <p>开箱即用的订阅电商系统，支持多套餐、优惠券、自动续费和营销活动，助力快速变现。</p>
+                  <div class="cc-stat-row">
+                    <div class="cc-stat"><strong>1287</strong><span>订阅量</span></div>
+                    <div class="cc-stat"><strong>4.9</strong><span>评分</span></div>
+                    <div class="cc-stat"><strong>1.2k</strong><span>收藏</span></div>
+                    <div class="cc-stat"><strong>98%</strong><span>好评率</span></div>
+                  </div>
+                  <div class="cc-mini-creator">
+                    <img class="cc-avatar" src="brand/hero/lingma-forge-mascot-v2.png" alt="">
+                    <div><strong>灵感工匠</strong><br><span>Pro 创作者｜已发布 12 个创意</span></div>
+                  </div>
+                </div>
               </div>
-              <div class="cc-mini-creator"><img class="cc-avatar" src="brand/hero/lingma-forge-mascot-v2.png" alt=""><div><strong>灵感工匠</strong><br><span>Pro 创作者｜已发布 12 个创意</span></div></div>
+
+              <!-- Slide 2: 灵码 AI 助手 App -->
+              <div class="cc-hero-slide">
+                <img class="cc-hero-mascot" src="brand/灵感工坊.png" alt="灵码工坊吉祥物">
+                <div class="cc-hero-copy">
+                  <span class="cc-badge dark"><svg class="icon" style="width:15px;height:15px"><use href="#shield"/></svg>精选推荐</span>
+                  <h2>灵码 AI 助手 App</h2>
+                  <p>智能对话、知识库检索与多模态交互平台，支持快速接入多种大模型，打造你的专属 AI 助理。</p>
+                  <div class="cc-stat-row">
+                    <div class="cc-stat"><strong>954</strong><span>订阅量</span></div>
+                    <div class="cc-stat"><strong>4.8</strong><span>评分</span></div>
+                    <div class="cc-stat"><strong>890</strong><span>收藏</span></div>
+                    <div class="cc-stat"><strong>95%</strong><span>好评率</span></div>
+                  </div>
+                  <div class="cc-mini-creator">
+                    <img class="cc-avatar" src="brand/hero/lingma-forge-mascot-v2.png" alt="">
+                    <div><strong>设计喵</strong><br><span>Pro 创作者｜已发布 8 个创意</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Slide 3: 数据分析看板 Pro -->
+              <div class="cc-hero-slide">
+                <img class="cc-hero-mascot" src="brand/灵感工坊.png" alt="灵码工坊吉祥物">
+                <div class="cc-hero-copy">
+                  <span class="cc-badge dark"><svg class="icon" style="width:15px;height:15px"><use href="#shield"/></svg>精选推荐</span>
+                  <h2>数据分析看板 Pro</h2>
+                  <p>多维度数据可视化分析平台，拖拽生成报表，实时接入多种数据库源，支持精细化运营分析。</p>
+                  <div class="cc-stat-row">
+                    <div class="cc-stat"><strong>1542</strong><span>订阅量</span></div>
+                    <div class="cc-stat"><strong>4.9</strong><span>评分</span></div>
+                    <div class="cc-stat"><strong>1.5k</strong><span>收藏</span></div>
+                    <div class="cc-stat"><strong>99%</strong><span>好评率</span></div>
+                  </div>
+                  <div class="cc-mini-creator">
+                    <img class="cc-avatar" src="brand/hero/lingma-forge-mascot-v2.png" alt="">
+                    <div><strong>数据工匠</strong><br><span>Pro 创作者｜已发布 15 个创意</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Slide 4: 企业官网 3.0 -->
+              <div class="cc-hero-slide">
+                <img class="cc-hero-mascot" src="brand/灵感工坊.png" alt="灵码工坊吉祥物">
+                <div class="cc-hero-copy">
+                  <span class="cc-badge dark"><svg class="icon" style="width:15px;height:15px"><use href="#shield"/></svg>精选推荐</span>
+                  <h2>企业官网 3.0</h2>
+                  <p>高科技感响应式官网解决方案，支持多语言、SEO 优化和精美动画展示，完美展现企业品牌实力。</p>
+                  <div class="cc-stat-row">
+                    <div class="cc-stat"><strong>760</strong><span>订阅量</span></div>
+                    <div class="cc-stat"><strong>4.7</strong><span>评分</span></div>
+                    <div class="cc-stat"><strong>730</strong><span>收藏</span></div>
+                    <div class="cc-stat"><strong>96%</strong><span>好评率</span></div>
+                  </div>
+                  <div class="cc-mini-creator">
+                    <img class="cc-avatar" src="brand/hero/lingma-forge-mascot-v2.png" alt="">
+                    <div><strong>WebCraft</strong><br><span>已发布 9 个创意</span></div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <div class="cc-hero-actions"><button class="btn primary">订阅</button><button class="cc-outline-btn">克隆</button><button class="cc-round-nav"><svg class="icon"><use href="#chevron-right"/></svg></button><button class="cc-round-nav"><svg class="icon" style="transform:rotate(180deg)"><use href="#chevron-right"/></svg></button></div>
-            <div class="cc-dots"><i class="cc-dot active"></i><i class="cc-dot"></i><i class="cc-dot"></i><i class="cc-dot"></i></div>
+            
+            <div class="cc-hero-actions">
+              <button class="btn primary">订阅</button>
+              <button class="cc-outline-btn">克隆</button>
+              <button class="cc-round-nav cc-prev"><svg class="icon" style="transform:rotate(180deg)"><use href="#chevron-right"/></svg></button>
+              <button class="cc-round-nav cc-next"><svg class="icon"><use href="#chevron-right"/></svg></button>
+            </div>
+            <div class="cc-dots">
+              <i class="cc-dot active"></i>
+              <i class="cc-dot"></i>
+              <i class="cc-dot"></i>
+              <i class="cc-dot"></i>
+            </div>
           </section>
 
           <div class="cc-toolbar">
@@ -173,6 +256,69 @@
         button.textContent = button.classList.contains('following') ? '已关注' : '关注';
       });
     });
+
+    // Carousel slider logic (cc-hero-slides)
+    const slides = document.querySelectorAll('.cc-hero-slide');
+    const dots = document.querySelectorAll('.cc-dot');
+    const prevBtn = document.querySelector('.cc-prev');
+    const nextBtn = document.querySelector('.cc-next');
+    let currentSlide = 0;
+    let slideInterval;
+
+    function showSlide(index) {
+      if (index >= slides.length) {
+        currentSlide = 0;
+      } else if (index < 0) {
+        currentSlide = slides.length - 1;
+      } else {
+        currentSlide = index;
+      }
+
+      slides.forEach(slide => slide.classList.remove('active'));
+      dots.forEach(dot => dot.classList.remove('active'));
+
+      slides[currentSlide].classList.add('active');
+      if (dots[currentSlide]) {
+        dots[currentSlide].classList.add('active');
+      }
+    }
+
+    function startAutoSlide() {
+      stopAutoSlide();
+      slideInterval = setInterval(() => {
+        showSlide(currentSlide + 1);
+      }, 3000);
+    }
+
+    function stopAutoSlide() {
+      if (slideInterval) {
+        clearInterval(slideInterval);
+      }
+    }
+
+    if (nextBtn) {
+      nextBtn.addEventListener('click', () => {
+        showSlide(currentSlide + 1);
+        startAutoSlide();
+      });
+    }
+
+    if (prevBtn) {
+      prevBtn.addEventListener('click', () => {
+        showSlide(currentSlide - 1);
+        startAutoSlide();
+      });
+    }
+
+    dots.forEach((dot, index) => {
+      dot.addEventListener('click', () => {
+        showSlide(index);
+        startAutoSlide();
+      });
+    });
+
+    // Start auto slider on page load
+    startAutoSlide();
   </script>
 </body>
 </html>
