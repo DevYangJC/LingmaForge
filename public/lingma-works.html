@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>灵码工坊 - 我的作品</title>
+  <link rel="stylesheet" href="css/shared.css" />
+  <link rel="stylesheet" href="css/creative.css" />
+  <link rel="stylesheet" href="css/profile.css" />
+  <link rel="stylesheet" href="css/works.css" />
+  <style>
+    /* Custom background matching other pages */
+    .profile-view {
+      background: 
+        radial-gradient(circle at 10% 20%, rgba(20, 217, 189, 0.03) 0%, transparent 30%),
+        radial-gradient(circle at 90% 20%, rgba(0, 229, 255, 0.04) 0%, transparent 35%),
+        radial-gradient(circle at 50% 80%, rgba(20, 217, 189, 0.02) 0%, transparent 40%),
+        #f8fbfd;
+    }
+    
+    .profile-view::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(0, 188, 213, 0.015) 1px, transparent 1px) 0 0 / 50px 50px,
+        linear-gradient(0deg, rgba(255, 198, 46, 0.01) 1px, transparent 1px) 0 0 / 50px 50px;
+      mask-image: radial-gradient(circle at 50% 30%, black 70%, transparent 95%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .nav-avatar-active {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      overflow: hidden;
+      border: 2px solid #00b8c4;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #fff;
+      box-shadow: 0 0 8px rgba(0, 184, 196, 0.4);
+      cursor: pointer;
+    }
+
+    .nav-avatar-active img {
+      width: 120%;
+      height: 120%;
+      object-fit: cover;
+      transform: translateY(1.5px);
+    }
+  </style>
+</head>
+<body>
+  <!-- SVG Symbols for icons to render fast and sharp -->
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+    <symbol id="user" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="folder" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></symbol>
+    <symbol id="star" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></symbol>
+    <symbol id="file-text" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></symbol>
+    <symbol id="shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></symbol>
+    <symbol id="settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="chevron-down" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></symbol>
+    <symbol id="chevron-right" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></symbol>
+    <symbol id="check-circle" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></symbol>
+    <symbol id="more-horizontal" viewBox="0 0 24 24"><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/></symbol>
+    <symbol id="zap" viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></symbol>
+    <symbol id="activity" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></symbol>
+    <symbol id="headphones" viewBox="0 0 24 24"><path d="M3 18v-6a9 9 0 0 1 18 0v6"/><path d="M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3"/></symbol>
+  </svg>
+
+  <div class="shot">
+    <!-- Top Navigation Bar -->
+    <nav class="site-nav">
+      <div class="brand">
+        <div class="brand-symbol"><img src="brand/lingma-forge-logo.png" alt="Logo"></div>
+        <div class="brand-text">灵码工坊</div>
+      </div>
+      <div class="menu">
+        <a href="lingma-homepage.html">首页</a>
+        <a href="lingma-creative.html">创意中心</a>
+        <a href="lingma-workbench.html">工作台</a>
+        <a href="lingma-subscription.html">订阅</a>
+        <a href="lingma-pricing.html">价格</a>
+        <a href="lingma-doc.html">文档</a>
+      </div>
+      <div class="nav-actions">
+        <span class="sun"><svg class="icon"><use href="#sun"/></svg></span>
+        <button class="btn" onclick="location.href='lingma-auth.html'">登录</button>
+        <button class="btn primary" onclick="location.href='lingma-auth.html#register'">免费开始</button>
+        <a href="lingma-profile.html" class="nav-avatar-active" title="个人中心">
+          <img src="brand/hero/lingma-forge-mascot-v2.png" alt="User Avatar" />
+        </a>
+      </div>
+    </nav>
+
+    <!-- Main Container -->
+    <div class="profile-view">
+      <div class="profile-layout-container">
+        
+        <!-- Top Section: Sidebar + Main Content -->
+        <div class="profile-top-section">
+          <!-- Left Sidebar -->
+          <aside class="profile-sidebar">
+            <div class="sidebar-card">
+              <div class="profile-avatar-wrapper">
+                <div class="profile-avatar-circle">
+                  <img src="../assets/lingma-product-ui/头像/subscription-mascot-avatar抠像.png" alt="User Mascot Avatar" />
+                </div>
+                <div class="profile-avatar-status"></div>
+              </div>
+              
+              <h3 class="profile-user-name">
+                灵码玩家
+                <span class="profile-badge-pro">Pro</span>
+              </h3>
+              <span class="profile-user-id">玩家 ID: lmplayer_1024</span>
+              
+              <div class="sidebar-menu">
+                <a href="lingma-profile.html#info" class="sidebar-menu-item">
+                  <svg><use href="#user"/></svg>
+                  个人资料
+                </a>
+                <a href="lingma-works.html" class="sidebar-menu-item active">
+                  <svg><use href="#folder"/></svg>
+                  我的作品
+                </a>
+                <a href="lingma-profile.html#favorites" class="sidebar-menu-item">
+                  <svg><use href="#star"/></svg>
+                  收藏
+                </a>
+                <a href="lingma-profile.html#orders" class="sidebar-menu-item">
+                  <svg><use href="#file-text"/></svg>
+                  订单与发票
+                </a>
+                <a href="lingma-profile.html#security" class="sidebar-menu-item">
+                  <svg><use href="#shield"/></svg>
+                  账号安全
+                </a>
+                <a href="lingma-profile.html#notifications" class="sidebar-menu-item">
+                  <svg><use href="#settings"/></svg>
+                  通知设置
+                </a>
+              </div>
+
+              <!-- Merged Help card inside sidebar-card -->
+              <div class="sidebar-help-card" style="margin-top: auto !important; width: 100%; box-sizing: border-box;">
+                <h4 class="sidebar-help-title">需要帮助？</h4>
+                <p class="sidebar-help-desc">访问帮助中心或联系客服</p>
+                <a href="#" class="sidebar-help-btn">帮助中心 &gt;</a>
+              </div>
+            </div>
+          </aside>
+
+          <!-- Right Main Panel -->
+          <main class="profile-main">
+            <!-- Header Row -->
+            <div class="works-header-row">
+              <div>
+                <h1 class="works-page-title">我的项目与作品</h1>
+                <p class="works-page-subtitle">管理你创建的项目，查看进度与状态</p>
+              </div>
+              <div class="works-header-right">
+                <button class="btn-create-project">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                  新建项目
+                </button>
+                <div class="works-search-wrapper">
+                  <input type="text" class="works-search-input" placeholder="搜索项目名称、类型或关键词..." />
+                  <svg class="works-search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+                </div>
+                <div class="works-filter-tabs">
+                  <button class="filter-tab active">全部</button>
+                  <button class="filter-tab">最近</button>
+                  <button class="filter-tab">收藏</button>
+                  <button class="filter-tab">回收站</button>
+                </div>
+                <button class="sort-btn">
+                  最近更新
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+                </button>
+              </div>
+            </div>
+
+            <!-- Stats Row -->
+            <div class="works-stats-row">
+              <div class="stat-widget-card">
+                <div class="widget-icon-bg bg-all">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+                </div>
+                <div class="widget-info">
+                  <span class="widget-label">全部项目</span>
+                  <span class="widget-value">24</span>
+                </div>
+              </div>
+              <div class="stat-widget-card">
+                <div class="widget-icon-bg bg-deployed">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <div class="widget-info">
+                  <span class="widget-label">已部署</span>
+                  <span class="widget-value">12</span>
+                </div>
+              </div>
+              <div class="stat-widget-card">
+                <div class="widget-icon-bg bg-developing">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                </div>
+                <div class="widget-info">
+                  <span class="widget-label">开发中</span>
+                  <span class="widget-value">7</span>
+                </div>
+              </div>
+              <div class="stat-widget-card">
+                <div class="widget-icon-bg bg-draft">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                </div>
+                <div class="widget-info">
+                  <span class="widget-label">草稿</span>
+                  <span class="widget-value">5</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Projects Grid (4x2 cards) -->
+            <div class="works-grid-scroll-wrapper">
+              <div class="works-projects-grid">
+                <!-- Card 1 -->
+                <article class="cc-card" tabindex="0">
+                  <div class="cc-thumb accent-a">
+                    <span class="cc-status">已部署</span>
+                    <span class="cc-mock-title">AI 会员订阅商城<br><small>多套餐 / 自动续费 / 营销</small></span>
+                    <span class="cc-lines"><i></i><i></i><i></i></span>
+                  </div>
+                  <div class="cc-card-body">
+                    <div class="cc-card-title-row">
+                      <div class="cc-card-title">AI 会员订阅商城</div>
+                      <span class="cc-card-category-tag">电商订阅</span>
+                    </div>
+                    <div class="cc-card-update-time">更新于 2 小时前</div>
+                    <div class="cc-card-footer-stats">
+                      <span class="stat-item"><svg class="icon-small"><use href="#file-text"/></svg> 4 页面</span>
+                      <span class="stat-item"><svg class="icon-small"><use href="#activity"/></svg> 3 API</span>
+                      <button class="btn-card-more"><svg class="icon-small"><use href="#more-horizontal"/></svg></button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- Card 2 -->
+                <article class="cc-card" tabindex="0">
+                  <div class="cc-thumb accent-b">
+                    <span class="cc-status">已部署</span>
+                    <span class="cc-mock-title">客户管理 CRM<br><small>客户 / 线索 / 报表</small></span>
+                    <span class="cc-lines"><i></i><i></i><i></i></span>
+                  </div>
+                  <div class="cc-card-body">
+                    <div class="cc-card-title-row">
+                      <div class="cc-card-title">客户管理 CRM</div>
+                      <span class="cc-card-category-tag">企业应用</span>
+                    </div>
+                    <div class="cc-card-update-time">更新于 1 天前</div>
+                    <div class="cc-card-footer-stats">
+                      <span class="stat-item"><svg class="icon-small"><use href="#file-text"/></svg> 6 页面</span>
+                      <span class="stat-item"><svg class="icon-small"><use href="#activity"/></svg> 4 API</span>
+                      <button class="btn-card-more"><svg class="icon-small"><use href="#more-horizontal"/></svg></button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- Card 3 -->
+                <article class="cc-card" tabindex="0">
+                  <div class="cc-thumb accent-c">
+                    <span class="cc-status">已部署</span>
+                    <span class="cc-mock-title">数据看板 Pro<br><small>可视化 / 图表 / 监控</small></span>
+                    <span class="cc-lines"><i></i><i></i><i></i></span>
+                  </div>
+                  <div class="cc-card-body">
+                    <div class="cc-card-title-row">
+                      <div class="cc-card-title">数据分析看板 Pro</div>
+                      <span class="cc-card-category-tag">数据分析</span>
+                    </div>
+                    <div class="cc-card-update-time">更新于 3 天前</div>
+                    <div class="cc-card-footer-stats">
+                      <span class="stat-item"><svg class="icon-small"><use href="#file-text"/></svg> 5 页面</span>
+                      <span class="stat-item"><svg class="icon-small"><use href="#activity"/></svg> 2 API</span>
+                      <button class="btn-card-more"><svg class="icon-small"><use href="#more-horizontal"/></svg></button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- Card 4 -->
+                <article class="cc-card" tabindex="0">
+                  <div class="cc-thumb accent-d">
+                    <span class="cc-status">已部署</span>
+                    <span class="cc-mock-title">企业官网 3.0<br><small>响应式 / 品牌 / 宣传</small></span>
+                    <span class="cc-lines"><i></i><i></i><i></i></span>
+                  </div>
+                  <div class="cc-card-body">
+                    <div class="cc-card-title-row">
+                      <div class="cc-card-title">企业官网 3.0</div>
+                      <span class="cc-card-category-tag">企业官网</span>
+                    </div>
+                    <div class="cc-card-update-time">更新于 5 天前</div>
+                    <div class="cc-card-footer-stats">
+                      <span class="stat-item"><svg class="icon-small"><use href="#file-text"/></svg> 8 页面</span>
+                      <span class="stat-item"><svg class="icon-small"><use href="#activity"/></svg> 2 API</span>
+                      <button class="btn-card-more"><svg class="icon-small"><use href="#more-horizontal"/></svg></button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- Card 5 -->
+                <article class="cc-card" tabindex="0">
+                  <div class="cc-thumb accent-e">
+                    <span class="cc-status orange">生成中</span>
+                    <span class="cc-mock-title">活动小程序<br><small>报名 / 签到 / 票务</small></span>
+                    <span class="cc-lines"><i></i><i></i><i></i></span>
+                  </div>
+                  <div class="cc-card-body">
+                    <div class="cc-card-title-row">
+                      <div class="cc-card-title">活动报名小程序</div>
+                      <span class="cc-card-category-tag">小程序</span>
+                    </div>
+                    <div class="cc-card-update-time">更新于 6 天前</div>
+                    <div class="cc-card-footer-stats">
+                      <span class="stat-item"><svg class="icon-small"><use href="#file-text"/></svg> 3 页面</span>
+                      <span class="stat-item"><svg class="icon-small"><use href="#activity"/></svg> 2 API</span>
+                      <button class="btn-card-more"><svg class="icon-small"><use href="#more-horizontal"/></svg></button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- Card 6 -->
+                <article class="cc-card" tabindex="0">
+                  <div class="cc-thumb accent-f">
+                    <span class="cc-status">已部署</span>
+                    <span class="cc-mock-title">营销落地页<br><small>引流 / 表单 / 转化</small></span>
+                    <span class="cc-lines"><i></i><i></i><i></i></span>
+                  </div>
+                  <div class="cc-card-body">
+                    <div class="cc-card-title-row">
+                      <div class="cc-card-title">AI 营销落地页</div>
+                      <span class="cc-card-category-tag">营销推广</span>
+                    </div>
+                    <div class="cc-card-update-time">更新于 7 天前</div>
+                    <div class="cc-card-footer-stats">
+                      <span class="stat-item"><svg class="icon-small"><use href="#file-text"/></svg> 2 页面</span>
+                      <span class="stat-item"><svg class="icon-small"><use href="#activity"/></svg> 1 API</span>
+                      <button class="btn-card-more"><svg class="icon-small"><use href="#more-horizontal"/></svg></button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- Card 7 -->
+                <article class="cc-card" tabindex="0">
+                  <div class="cc-thumb accent-g">
+                    <span class="cc-status blue">开发中</span>
+                    <span class="cc-mock-title">智能客服中心<br><small>对话 / 知识库 / 工单</small></span>
+                    <span class="cc-lines"><i></i><i></i><i></i></span>
+                  </div>
+                  <div class="cc-card-body">
+                    <div class="cc-card-title-row">
+                      <div class="cc-card-title">智能客服中心</div>
+                      <span class="cc-card-category-tag">AI 应用</span>
+                    </div>
+                    <div class="cc-card-update-time">更新于 1 周前</div>
+                    <div class="cc-card-footer-stats">
+                      <span class="stat-item"><svg class="icon-small"><use href="#file-text"/></svg> 5 页面</span>
+                      <span class="stat-item"><svg class="icon-small"><use href="#activity"/></svg> 3 API</span>
+                      <button class="btn-card-more"><svg class="icon-small"><use href="#more-horizontal"/></svg></button>
+                    </div>
+                  </div>
+                </article>
+
+                <!-- Card 8 -->
+                <article class="cc-card" tabindex="0">
+                  <div class="cc-thumb accent-h">
+                    <span class="cc-status gray">草稿</span>
+                    <span class="cc-mock-title">课程预约系统<br><small>排课 / 预约 / 班级</small></span>
+                    <span class="cc-lines"><i></i><i></i><i></i></span>
+                  </div>
+                  <div class="cc-card-body">
+                    <div class="cc-card-title-row">
+                      <div class="cc-card-title">课程预约系统</div>
+                      <span class="cc-card-category-tag">教育培训</span>
+                    </div>
+                    <div class="cc-card-update-time">更新于 1 周前</div>
+                    <div class="cc-card-footer-stats">
+                      <span class="stat-item"><svg class="icon-small"><use href="#file-text"/></svg> 4 页面</span>
+                      <span class="stat-item"><svg class="icon-small"><use href="#activity"/></svg> 2 API</span>
+                      <button class="btn-card-more"><svg class="icon-small"><use href="#more-horizontal"/></svg></button>
+                    </div>
+                  </div>
+                </article>
+              </div>
+            </div>
+
+            <!-- Recent Activities -->
+            <div class="recent-activities-panel">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                <h3 class="panel-section-title">最近动态</h3>
+                <div class="works-pagination">
+                  <button class="page-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg></button>
+                  <button class="page-num active">1</button>
+                  <button class="page-num">2</button>
+                  <button class="page-num">3</button>
+                  <button class="page-arrow"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg></button>
+                </div>
+              </div>
+              <div class="activities-wrapper">
+                <div class="activity-row">
+                  <div class="activity-left">
+                    <div class="activity-icon-wrapper">
+                      <svg><use href="#file-text"/></svg>
+                    </div>
+                    <span class="activity-text"><strong>AI 会员订阅商城</strong> 更新了 3 个组件</span>
+                  </div>
+                  <span class="activity-time">2 小时前</span>
+                </div>
+                <div class="activity-row">
+                  <div class="activity-left">
+                    <div class="activity-icon-wrapper text-deployed">
+                      <svg><use href="#check-circle"/></svg>
+                    </div>
+                    <span class="activity-text"><strong>客户管理 CRM</strong> 成功部署 to 生产环境</span>
+                  </div>
+                  <span class="activity-time">1 天前</span>
+                </div>
+                <div class="activity-row">
+                  <div class="activity-left">
+                    <div class="activity-icon-wrapper text-developing">
+                      <svg><use href="#activity"/></svg>
+                    </div>
+                    <span class="activity-text"><strong>智能客服中心</strong> 创建了新接口 api/chat</span>
+                  </div>
+                  <span class="activity-time">2 天前</span>
+                </div>
+                <div class="activity-row">
+                  <div class="activity-left">
+                    <div class="activity-icon-wrapper">
+                      <svg><use href="#file-text"/></svg>
+                    </div>
+                    <span class="activity-text"><strong>课程预约系统</strong> 创建了项目</span>
+                  </div>
+                  <span class="activity-time">1 周前</span>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    </div>
+
+    <!-- Custom Footer -->
+    <footer class="profile-footer">
+      <div class="profile-footer-left">
+        <span class="profile-footer-logo">
+          <img src="brand/lingma-forge-logo.png" alt="Logo" />
+          灵码工坊
+        </span>
+        <div class="profile-footer-sep"></div>
+        <span class="profile-footer-slogan">灵感 &mdash; 触即发</span>
+      </div>
+      <div class="profile-footer-center">
+        <span class="profile-footer-status">
+          <span class="profile-footer-dot"></span>
+          在线状态
+        </span>
+        <a href="#" class="profile-footer-link">帮助中心</a>
+        <a href="#" class="profile-footer-link">反馈建议</a>
+      </div>
+      <div class="profile-footer-right">
+        <span>05</span> / 08
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Tab/Page Navigation logic
+    const menuItems = document.querySelectorAll('.sidebar-menu-item');
+    menuItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        // If clicking a relative anchor on lingma-profile.html, let the default link click handle it (it will navigate to lingma-profile.html#...)
+      });
+    });
+  </script>
+</body>
+</html>

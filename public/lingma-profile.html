@@ -102,7 +102,7 @@
         <button class="btn" onclick="location.href='lingma-auth.html'">登录</button>
         <button class="btn primary" onclick="location.href='lingma-auth.html#register'">免费开始</button>
         <a href="lingma-profile.html" class="nav-avatar-active" title="个人中心">
-          <img src="../assets/lingma-product-ui/头像/头像1.jpg" alt="User Avatar" />
+          <img src="brand/hero/lingma-forge-mascot-v2.png" alt="User Avatar" />
         </a>
       </div>
     </nav>
@@ -134,7 +134,7 @@
                   <svg><use href="#user"/></svg>
                   个人资料
                 </a>
-                <a href="#works" class="sidebar-menu-item">
+                <a href="lingma-works.html" class="sidebar-menu-item">
                   <svg><use href="#folder"/></svg>
                   我的作品
                 </a>
@@ -155,12 +155,13 @@
                   通知设置
                 </a>
               </div>
-            </div>
-            
-            <div class="sidebar-help-card">
-              <h4 class="sidebar-help-title">需要帮助？</h4>
-              <p class="sidebar-help-desc">访问帮助中心或联系客服</p>
-              <a href="#" class="sidebar-help-btn">帮助中心 &gt;</a>
+              
+              <!-- Merged Help card inside sidebar-card -->
+              <div class="sidebar-help-card" style="margin-top: auto !important; width: 100%; box-sizing: border-box;">
+                <h4 class="sidebar-help-title">需要帮助？</h4>
+                <p class="sidebar-help-desc">访问帮助中心或联系客服</p>
+                <a href="#" class="sidebar-help-btn">帮助中心 &gt;</a>
+              </div>
             </div>
           </aside>
 
@@ -823,13 +824,90 @@
   </div>
 
   <script>
-    // Smooth Sidebar Link Scroll / Tabs switching
+    // Smooth Sidebar Link Scroll & ScrollSpy logic
     const menuItems = document.querySelectorAll('.sidebar-menu-item');
+    const scrollContainer = document.querySelector('.profile-main');
+
+    // Get all sections that have matching menu items
+    const sections = [];
+    menuItems.forEach(item => {
+      const href = item.getAttribute('href');
+      if (href && href.startsWith('#')) {
+        const section = document.querySelector(href);
+        if (section) {
+          sections.push({ item, section });
+        }
+      }
+    });
+
+    // Intercept clicks to scroll smoothly within overflow container
     menuItems.forEach(item => {
       item.addEventListener('click', (e) => {
-        menuItems.forEach(i => i.classList.remove('active'));
-        item.classList.add('active');
+        const href = item.getAttribute('href');
+        if (href && href.startsWith('#')) {
+          e.preventDefault();
+          const targetSection = document.querySelector(href);
+          if (targetSection) {
+            const containerTop = scrollContainer.scrollTop;
+            const targetTop = targetSection.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top + containerTop;
+            
+            scrollContainer.scrollTo({
+              top: targetTop - 10, // 10px offset for padding
+              behavior: 'smooth'
+            });
+
+            // Set active class immediately
+            menuItems.forEach(i => i.classList.remove('active'));
+            item.classList.add('active');
+          }
+        }
       });
+    });
+
+    // ScrollSpy: auto-select menu item on scrolling the container
+    function updateActiveOnScroll() {
+      const containerRect = scrollContainer.getBoundingClientRect();
+      let activeItem = null;
+      let minDiff = Infinity;
+
+      sections.forEach(({ item, section }) => {
+        const sectionRect = section.getBoundingClientRect();
+        // Calculate diff between section top and container top
+        const diff = Math.abs(sectionRect.top - containerRect.top);
+        if (sectionRect.top < containerRect.bottom - 50 && sectionRect.bottom > containerRect.top + 50) {
+          if (diff < minDiff) {
+            minDiff = diff;
+            activeItem = item;
+          }
+        }
+      });
+
+      if (activeItem) {
+        menuItems.forEach(i => i.classList.remove('active'));
+        activeItem.classList.add('active');
+      }
+    }
+
+    let isScrolling;
+    scrollContainer.addEventListener('scroll', () => {
+      window.clearTimeout(isScrolling);
+      isScrolling = setTimeout(updateActiveOnScroll, 60);
+    });
+
+    // Run once on load to ensure correct item is selected
+    window.addEventListener('DOMContentLoaded', () => {
+      // Check if URL hash exists, scroll to it
+      const hash = window.location.hash;
+      if (hash) {
+        const activeItem = document.querySelector(`.sidebar-menu-item[href="${hash}"]`);
+        if (activeItem) {
+          setTimeout(() => {
+            activeItem.click();
+          }, 100);
+        }
+      } else {
+        updateActiveOnScroll();
+      }
     });
   </script>
 </body>

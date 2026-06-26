@@ -207,14 +207,14 @@ body {
 .sidebar-help-card::before {
   content: "";
   position: absolute;
-  right: -10px;
-  bottom: -10px;
+  right: 10px;
+  bottom: 70px;
   width: 70px;
   height: 70px;
-  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%23e4ecf0" stroke-width="1.5"><path d="M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3"/></svg>');
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="%231689ff" stroke-width="1.5"><path d="M3 18v-6a9 9 0 0 1 18 0v6M21 19a2 2 0 0 1-2 2h-1a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h3M3 19a2 2 0 0 0 2 2h1a2 2 0 0 0 2-2v-3a2 2 0 0 0-2-2H3"/></svg>');
   background-size: contain;
   background-repeat: no-repeat;
-  opacity: 0.8;
+  opacity: 0.35;
   pointer-events: none;
 }
 
@@ -259,6 +259,26 @@ body {
   flex-direction: column;
   gap: 16px;
   min-height: 0;
+  overflow-y: auto;
+  padding-right: 6px;
+}
+
+/* Custom premium scrollbar for internal scrolling */
+.profile-main::-webkit-scrollbar {
+  width: 6px;
+}
+
+.profile-main::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.profile-main::-webkit-scrollbar-thumb {
+  background: var(--profile-border);
+  border-radius: 99px;
+}
+
+.profile-main::-webkit-scrollbar-thumb:hover {
+  background: var(--profile-text-muted);
 }
 
 .profile-card {
@@ -313,8 +333,8 @@ body {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
   gap: 16px;
-  flex: 1.25;
-  min-height: 0;
+  height: auto;
+  flex: none;
 }
 
 /* Info Form Fields */
@@ -685,8 +705,8 @@ body {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
   gap: 16px;
-  flex: 1;
-  min-height: 0;
+  height: auto;
+  flex: none;
 }
 
 /* Works Gallery Grid */
@@ -1027,9 +1047,8 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 16px;
-  height: 250px;
-  flex-shrink: 0;
-  min-height: 0;
+  height: auto;
+  flex: none;
   box-sizing: border-box;
 }
 
