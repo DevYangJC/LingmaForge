@@ -1,0 +1,1039 @@
+
+    /* Scope and Reset Variables exclusively named to prevent any external CSS collision */
+    :root {
+      --lws-ink: #111821;
+      --lws-ink-2: #1d2732;
+      --lws-muted: #697686;
+      --lws-soft: #f5f9fc;
+      --lws-paper: #fff;
+      --lws-line: #dce6ef;
+      --lws-line-2: #cbd9e5;
+      --lws-cyan: #00e5ff;
+      --lws-cyan-deep: #009be5;
+      --lws-mint: #14d9bd;
+      --lws-mint-2: #20ffa3;
+      --lws-gold: #ffc62e;
+      --lws-orange: #ff7a00;
+      --lws-green: #19c990;
+      --lws-blue: #1689ff;
+      --lws-shadow: 0 14px 34px rgba(28, 42, 58, .10);
+      --lws-shadow-strong: 0 24px 70px rgba(0, 128, 170, .18);
+      --lws-radius: 12px;
+      --lws-font-ui: "Microsoft YaHei UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+      --lws-font-display: "Bahnschrift", "DIN Alternate", "Microsoft YaHei UI", sans-serif;
+
+      --lws-grid-line: rgba(220, 230, 239, 0.4);
+      --lws-accent: #00b8c4;
+      --lws-accent-hover: #00a0ab;
+      --lws-card-border: #8df1f7;
+      --lws-card-shadow: 0 10px 40px rgba(0, 229, 255, 0.04), 0 4px 20px rgba(28, 42, 58, 0.03);
+      --lws-card-shadow-active: 0 12px 48px rgba(0, 184, 196, 0.1), 0 4px 20px rgba(28, 42, 58, 0.05);
+    }
+
+    /* SPA 适配：原型写法 html,body{height:100%;overflow:hidden} 会污染全局其他路由，
+       故收敛到页面根容器 .lws-page-root，视觉效果与原型一致（全屏、隐藏溢出）。*/
+    .lws-page-root {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100vh;
+      background: #f8fbfd;
+      overflow: hidden;
+    }
+
+    /* Isolated reset scoped strictly under lws-shot wrapper */
+    .lws-shot {
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      color: var(--lws-ink);
+      font-family: var(--lws-font-ui);
+      background: #f8fbfd;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .lws-shot * {
+      box-sizing: border-box;
+    }
+
+    /* -----------------------------------------
+       Isolated Navbar Styles (lws- prefixed)
+       ----------------------------------------- */
+    .lws-nav {
+      position: relative;
+      z-index: 100;
+      height: 76px;
+      display: grid;
+      grid-template-columns: 260px 1fr 330px;
+      align-items: center;
+      padding: 0 clamp(24px, 3vw, 48px);
+      border-bottom: 1px solid rgba(215, 226, 236, .86);
+      background: rgba(255, 255, 255, .84);
+      backdrop-filter: blur(18px);
+    }
+
+    .lws-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .lws-brand-symbol {
+      width: 48px;
+      height: 48px;
+      position: relative;
+      border-radius: 12px;
+      overflow: hidden;
+      background: white;
+    }
+
+    .lws-brand-symbol img {
+      position: absolute;
+      width: 70px;
+      height: 65px;
+      left: -11px;
+      top: -5px;
+      object-fit: cover;
+    }
+
+    .lws-brand-text {
+      font: 900 28px/1 var(--lws-font-display);
+      letter-spacing: .02em;
+      color: #111821;
+    }
+
+    .lws-menu {
+      display: flex;
+      justify-content: center;
+      gap: 47px;
+      color: #27313b;
+      font-size: 15px;
+    }
+
+    .lws-menu a {
+      position: relative;
+      color: inherit;
+      text-decoration: none;
+      padding: 27px 0 25px;
+      transition: color .16s ease;
+      font-weight: 500;
+    }
+
+    .lws-menu a:hover {
+      color: var(--lws-mint);
+    }
+
+    .lws-menu a:active {
+      transform: translateY(1px);
+    }
+
+    .lws-menu a.lws-active {
+      color: #00aab3;
+      font-weight: 800;
+    }
+
+    .lws-menu a.lws-active::after {
+      content: "";
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 13px;
+      height: 2px;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--lws-cyan), var(--lws-mint));
+    }
+
+    .lws-nav-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 18px;
+    }
+
+    .lws-sun {
+      width: 32px;
+      height: 32px;
+      display: grid;
+      place-items: center;
+      color: #64707c;
+      border-radius: 50%;
+      transition: background .16s ease, color .16s ease;
+      cursor: pointer;
+    }
+
+    .lws-sun:hover {
+      background: #edf6f8;
+      color: #00aab3;
+    }
+
+    .lws-sun svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Isolated Custom Dropdown Button */
+    .lws-profile-dropdown {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 4px 12px 4px 6px;
+      background: #ffffff;
+      border: 1px solid var(--lws-line);
+      border-radius: 20px;
+      cursor: pointer;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+      user-select: none;
+    }
+
+    .lws-profile-dropdown:hover {
+      border-color: var(--lws-line-2);
+      box-shadow: 0 4px 12px rgba(28, 42, 58, 0.05);
+    }
+
+    .lws-profile-avatar-box {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #f0f4f8;
+      border: 1px solid rgba(0, 170, 179, 0.2);
+    }
+
+    .lws-profile-avatar-img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .lws-profile-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--lws-ink);
+    }
+
+    .lws-profile-arrow-icon {
+      width: 14px;
+      height: 14px;
+      color: var(--lws-muted);
+      display: inline-block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .lws-dropdown-menu-list {
+      position: absolute;
+      top: calc(100% + 8px);
+      right: 0;
+      width: 150px;
+      background: #ffffff;
+      border: 1px solid var(--lws-line);
+      border-radius: 10px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
+      padding: 6px 0;
+      display: none;
+      flex-direction: column;
+      z-index: 100;
+    }
+
+    .lws-dropdown-menu-list.lws-active {
+      display: flex;
+      animation: lwsSlideDownIn 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
+    .lws-dropdown-item-link {
+      padding: 10px 14px;
+      font-size: 13px;
+      color: var(--lws-ink-2);
+      text-decoration: none;
+      transition: background 0.15s, color 0.15s;
+      text-align: left;
+    }
+
+    .lws-dropdown-item-link:hover {
+      background: #edf6f8;
+      color: #00aab3;
+    }
+
+    /* Responsive navbar rules */
+    @media (max-width: 1180px) {
+      .lws-nav {
+        grid-template-columns: 220px 1fr auto;
+        padding-inline: 20px;
+      }
+      .lws-menu {
+        gap: 24px;
+      }
+      .lws-nav-actions {
+        gap: 10px;
+      }
+    }
+
+    @media (max-width: 820px) {
+      .lws-nav {
+        height: auto;
+        grid-template-columns: 1fr;
+        gap: 14px;
+        padding-block: 14px;
+      }
+      .lws-menu {
+        justify-content: flex-start;
+        gap: 18px;
+        overflow-x: auto;
+      }
+      .lws-nav-actions {
+        justify-content: flex-start;
+      }
+    }
+
+    /* -----------------------------------------
+       Isolated Main Layout Styles
+       ----------------------------------------- */
+    .lws-layout {
+      position: relative;
+      flex-grow: 1;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: space-between;
+      padding: 32px 24px 24px;
+      z-index: 1;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .lws-background-grid {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: -1;
+      background-image: 
+        linear-gradient(90deg, var(--lws-grid-line) 1px, transparent 1px),
+        linear-gradient(0deg, var(--lws-grid-line) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .lws-background-grid::before {
+      content: "";
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      left: -150px;
+      top: 30%;
+      background: radial-gradient(circle, rgba(0, 229, 255, 0.09) 0%, rgba(20, 217, 189, 0.03) 50%, transparent 70%);
+      filter: blur(80px);
+      pointer-events: none;
+    }
+
+    .lws-background-grid::after {
+      content: "";
+      position: absolute;
+      width: 700px;
+      height: 700px;
+      right: -100px;
+      top: -50px;
+      background: radial-gradient(circle, rgba(0, 229, 255, 0.12) 0%, rgba(20, 217, 189, 0.04) 50%, transparent 70%);
+      filter: blur(100px);
+      pointer-events: none;
+    }
+
+    .lws-core-container {
+      position: relative;
+      width: 100%;
+      max-width: 960px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex-grow: 1;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    /* 1. Breadcrumb/Top Tab Section */
+    .lws-top-pill-wrapper {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+      animation: lwsFadeInDown 0.6s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .lws-top-pill {
+      display: flex;
+      align-items: center;
+      padding: 8px 20px;
+      background: rgba(255, 255, 255, 0.85);
+      border: 1px solid var(--lws-line);
+      border-radius: 99px;
+      font-size: 13px;
+      box-shadow: 0 4px 16px rgba(28, 42, 58, 0.03);
+      backdrop-filter: blur(8px);
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .lws-top-pill:hover {
+      border-color: var(--lws-line-2);
+      box-shadow: 0 6px 20px rgba(28, 42, 58, 0.05);
+    }
+
+    .lws-pill-title {
+      color: var(--lws-muted);
+      font-weight: 500;
+    }
+
+    .lws-pill-title strong {
+      color: var(--lws-ink);
+      font-weight: 700;
+    }
+
+    .lws-pill-separator {
+      margin: 0 10px;
+      color: #cbd5e0;
+      user-select: none;
+    }
+
+    .lws-pill-divider {
+      width: 1px;
+      height: 12px;
+      background: #e2e8f0;
+      margin: 0 16px;
+    }
+
+    .lws-pill-link {
+      color: var(--lws-blue);
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 3px;
+      transition: color 0.2s ease;
+    }
+
+    .lws-pill-link:hover {
+      color: #0076e5;
+    }
+
+    .lws-pill-link svg {
+      transition: transform 0.2s ease;
+    }
+
+    .lws-pill-link:hover svg {
+      transform: translateX(2px);
+    }
+
+    /* 2. Welcome Panel Layout */
+    .lws-welcome-block {
+      width: 100%;
+      position: relative;
+      padding-left: 8px;
+      margin-bottom: 16px;
+      animation: lwsFadeInUp 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+    }
+
+    .lws-ready-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      background: #ebfcf7;
+      border: 1px solid rgba(25, 201, 144, 0.25);
+      border-radius: 99px;
+      font-size: 13px;
+      color: #0fa275;
+      font-weight: 600;
+      margin-bottom: 18px;
+      box-shadow: 0 2px 8px rgba(25, 201, 144, 0.04);
+    }
+
+    .lws-ready-dot {
+      width: 6px;
+      height: 6px;
+      background-color: #19c990;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #19c990;
+    }
+
+    .lws-welcome-heading {
+      font-size: 40px;
+      font-weight: 800;
+      color: var(--lws-ink);
+      margin: 0 0 10px 0;
+      line-height: 1.2;
+      letter-spacing: -0.01em;
+    }
+
+    .lws-welcome-heading span.lws-gradient-text {
+      background: linear-gradient(90deg, var(--lws-accent) 0%, var(--lws-blue) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      font-weight: 800;
+    }
+
+    .lws-welcome-desc {
+      font-size: 15px;
+      color: var(--lws-muted);
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    /* Person Mascot Overlay (Absolutely Positioned and chroma key green removed) */
+    .lws-mascot-overlay {
+      position: absolute;
+      right: 25px;
+      top: -65px;
+      width: 320px;
+      height: 320px;
+      z-index: 10;
+      pointer-events: none;
+      animation: lwsFloatEffect 6s ease-in-out infinite, lwsFadeIn 0.8s ease-out 0.2s both;
+    }
+
+    .lws-mascot-sprite {
+      width: 100%;
+      height: 100%;
+      object-fit: contain;
+      filter: url(#lws-chroma-key-green-filter);
+    }
+
+    /* 3. Main Prompt Input Card */
+    .lws-input-card {
+      width: 100%;
+      background: rgba(255, 255, 255, 0.92);
+      border: 1.5px solid var(--lws-card-border);
+      border-radius: 20px;
+      box-shadow: var(--lws-card-shadow);
+      padding: 24px 24px 20px;
+      margin-bottom: 12px;
+      position: relative;
+      z-index: 5;
+      backdrop-filter: blur(16px);
+      transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+      animation: lwsFadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.1s both;
+    }
+
+    .lws-input-card:focus-within {
+      border-color: var(--lws-accent);
+      box-shadow: var(--lws-card-shadow-active);
+    }
+
+    .lws-textarea-wrapper {
+      width: 100%;
+      margin-bottom: 12px;
+    }
+
+    .lws-prompt-textarea {
+      width: 100%;
+      height: 80px;
+      border: none;
+      background: transparent;
+      font-family: var(--lws-font-ui);
+      font-size: 15.5px;
+      color: var(--lws-ink-2);
+      line-height: 1.6;
+      resize: none;
+      outline: none;
+      padding: 0;
+    }
+
+    .lws-prompt-textarea::placeholder {
+      color: #a2b0be;
+      opacity: 0.95;
+    }
+
+    .lws-input-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-top: 1px dashed rgba(220, 230, 239, 0.6);
+      padding-top: 16px;
+      margin-top: 12px;
+    }
+
+    .lws-toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .lws-action-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 11px;
+      background: transparent;
+      border: none;
+      border-radius: 8px;
+      color: var(--lws-muted);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 0.2s ease, color 0.2s ease;
+    }
+
+    .lws-action-btn:hover {
+      background: #edf3f8;
+      color: var(--lws-ink);
+    }
+
+    .lws-action-btn svg {
+      color: #8c9cae;
+      transition: color 0.2s ease;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .lws-action-btn:hover svg {
+      color: var(--lws-ink);
+    }
+
+    .lws-action-btn.lws-icon-only {
+      padding: 7px;
+    }
+
+    .lws-action-separator {
+      width: 1px;
+      height: 14px;
+      background: rgba(220, 230, 239, 0.85);
+      margin: 0 4px;
+    }
+
+    .lws-toolbar-right {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Model selector dropdown pill */
+    .lws-model-selector {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: #ffffff;
+      border: 1px solid var(--lws-line);
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--lws-ink);
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      user-select: none;
+    }
+
+    .lws-model-selector:hover {
+      border-color: var(--lws-line-2);
+      background: #fcfdfe;
+    }
+
+    .lws-model-selector svg {
+      color: var(--lws-muted);
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Cost indicator */
+    .lws-cost-info {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 12px;
+      color: #98a7b5;
+    }
+
+    .lws-cost-info svg {
+      width: 14px;
+      height: 14px;
+      color: #b8c6d4;
+      display: inline-block;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* Send button */
+    .lws-send-circle-btn {
+      width: 40px;
+      height: 40px;
+      background: linear-gradient(135deg, #00ceda, #00b8c4);
+      border: none;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #ffffff;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(0, 184, 196, 0.28);
+      transition: transform 0.2s, background 0.2s, box-shadow 0.2s;
+    }
+
+    .lws-send-circle-btn:hover {
+      transform: scale(1.05);
+      box-shadow: 0 6px 18px rgba(0, 184, 196, 0.38);
+    }
+
+    .lws-send-circle-btn:active {
+      transform: scale(0.96);
+    }
+
+    .lws-send-circle-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .lws-input-hint-row {
+      font-size: 12px;
+      color: #9db0c2;
+      margin-bottom: 20px;
+      text-align: center;
+      user-select: none;
+      animation: lwsFadeIn 0.8s ease-out 0.2s both;
+    }
+
+    /* 4. Template Cards Row */
+    .lws-cards-row {
+      width: 100%;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 16px;
+      animation: lwsFadeInUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+    }
+
+    .lws-template-item {
+      background: #ffffff;
+      border: 1px solid var(--lws-line);
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      text-decoration: none;
+      transition: transform 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+      box-shadow: 0 4px 12px rgba(28, 42, 58, 0.01);
+    }
+
+    .lws-template-item:hover {
+      transform: translateY(-2px);
+      border-color: var(--lws-card-border);
+      box-shadow: 0 10px 24px rgba(0, 229, 255, 0.04), 0 4px 12px rgba(28, 42, 58, 0.02);
+    }
+
+    .lws-template-item-content {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      overflow: hidden;
+    }
+
+    .lws-template-icon-box {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: transform 0.2s ease;
+    }
+
+    .lws-template-item:hover .lws-template-icon-box {
+      transform: scale(1.05);
+    }
+
+    .lws-template-label-group {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .lws-template-name {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--lws-ink);
+      margin-bottom: 2px;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .lws-template-intro {
+      font-size: 11.5px;
+      color: var(--lws-muted);
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      overflow: hidden;
+    }
+
+    .lws-template-chevron {
+      color: #cbd5e1;
+      flex-shrink: 0;
+      transition: transform 0.2s ease, color 0.2s ease;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .lws-template-item:hover .lws-template-chevron {
+      color: var(--lws-accent);
+      transform: translateX(2px);
+    }
+
+    /* Category colors */
+    .lws-template-item.lws-corp .lws-template-icon-box {
+      background: #e6fcf4;
+      color: #19c990;
+    }
+
+    .lws-template-item.lws-admin-theme .lws-template-icon-box {
+      background: #ecf5ff;
+      color: #1689ff;
+    }
+
+    .lws-template-item.lws-shop .lws-template-icon-box {
+      background: #fff8e6;
+      color: #ff7a00;
+    }
+
+    .lws-template-item.lws-chart .lws-template-icon-box {
+      background: #f5f0ff;
+      color: #8a3ffc;
+    }
+
+    /* 5. Prompt Optimizer Helper Link */
+    .lws-optimizer-link-wrap {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: center;
+      animation: lwsFadeIn 0.8s ease-out 0.3s both;
+    }
+
+    .lws-optimizer-link {
+      font-size: 13.5px;
+      color: #00aab3;
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.2s;
+    }
+
+    .lws-optimizer-link:hover {
+      opacity: 0.82;
+    }
+
+    .lws-optimizer-link svg {
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    /* 6. Page Footer Actions */
+    .lws-footer-zone {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+      max-width: 960px;
+      padding-top: 16px;
+      border-top: 1px dashed rgba(220, 230, 239, 0.6);
+      flex-shrink: 0;
+      animation: lwsFadeIn 0.8s ease-out 0.4s both;
+    }
+
+    .lws-footer-desc {
+      font-size: 12.5px;
+      color: #a2b0be;
+      margin: 0 0 14px 0;
+      user-select: none;
+    }
+
+    .lws-footer-nav-links {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .lws-footer-nav-btn {
+      font-size: 13.5px;
+      color: #00aab3;
+      text-decoration: none;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: opacity 0.2s, transform 0.2s;
+    }
+
+    .lws-footer-nav-btn:hover {
+      opacity: 0.85;
+      transform: translateY(-0.5px);
+    }
+
+    .lws-footer-nav-btn:active {
+      transform: translateY(0.5px);
+    }
+
+    .lws-footer-nav-btn svg {
+      color: #00aab3;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .lws-footer-vertical-split {
+      width: 1px;
+      height: 14px;
+      background: #d9e2ec;
+    }
+
+    /* -----------------------------------------
+       Keyframe Animations (lws- prefixed)
+       ----------------------------------------- */
+    @keyframes lwsFloatEffect {
+      0%, 100% {
+        transform: translateY(0);
+      }
+      50% {
+        transform: translateY(-10px);
+      }
+    }
+
+    @keyframes lwsFadeInUp {
+      from {
+        opacity: 0;
+        transform: translateY(20px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes lwsFadeInDown {
+      from {
+        opacity: 0;
+        transform: translateY(-16px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes lwsFadeIn {
+      from {
+        opacity: 0;
+      }
+      to {
+        opacity: 1;
+      }
+    }
+
+    @keyframes lwsSlideDownIn {
+      from {
+        opacity: 0;
+        transform: translateY(-8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    /* -----------------------------------------
+       Layout Responsiveness Adjustments
+       ----------------------------------------- */
+    @media (max-width: 960px) {
+      .lws-mascot-overlay {
+        width: 260px;
+        height: 260px;
+        top: -40px;
+        right: 10px;
+      }
+      .lws-welcome-heading {
+        font-size: 40px;
+      }
+      .lws-cards-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 12px;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .lws-welcome-block {
+        text-align: center;
+        padding-left: 0;
+        padding-top: 210px;
+      }
+      .lws-mascot-overlay {
+        width: 220px;
+        height: 220px;
+        top: -15px;
+        left: 50%;
+        transform: translateX(-50%) !important;
+        right: auto;
+      }
+      .lws-welcome-heading {
+        font-size: 34px;
+      }
+      .lws-input-card {
+        padding: 20px;
+      }
+      .lws-input-toolbar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 16px;
+      }
+      .lws-toolbar-left {
+        justify-content: space-around;
+      }
+      .lws-toolbar-right {
+        justify-content: space-between;
+      }
+      .lws-cards-row {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+    }
+  

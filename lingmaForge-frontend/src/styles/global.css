@@ -1,0 +1,392 @@
+:root {
+  --ink: #111821;
+  --ink-2: #1d2732;
+  --muted: #697686;
+  --soft: #f5f9fc;
+  --paper: #fff;
+  --line: #dce6ef;
+  --line-2: #cbd9e5;
+  --cyan: #00e5ff;
+  --cyan-deep: #009be5;
+  --mint: #14d9bd;
+  --mint-2: #20ffa3;
+  --gold: #ffc62e;
+  --orange: #ff7a00;
+  --green: #19c990;
+  --blue: #1689ff;
+  --shadow: 0 14px 34px rgba(28, 42, 58, .10);
+  --shadow-strong: 0 24px 70px rgba(0, 128, 170, .18);
+  --radius: 12px;
+  --font-ui: "Microsoft YaHei UI", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+  --font-display: "Bahnschrift", "DIN Alternate", "Microsoft YaHei UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-ui);
+  background: #f8fbfd;
+  /* 水平方向在视口处裁剪，避免各页绝对定位装饰元素（如首页 orbital）
+     造成的横向滚动条；垂直方向保留滚动。放在 body 层而非 .shot 层，
+     这样首页吉祥物顶部可向上探出、覆盖在导航栏之上而不被裁剪。 */
+  overflow-x: hidden;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+.shot {
+  width: 100%;
+  min-height: 100vh;
+  /* 不在此处设置 overflow，避免对子元素负偏移部分（如首页吉祥物探出导航栏）的裁剪；
+     水平裁剪统一由 body 承担。 */
+  background: #f8fbfd;
+}
+
+.traffic {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.dot.red {
+  background: #ff5f57;
+}
+
+.dot.yellow {
+  background: #ffbd2e;
+}
+
+.dot.green {
+  background: #28c840;
+}
+
+.icon {
+  width: 20px;
+  height: 20px;
+  display: inline-block;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: 0 0 auto;
+}
+
+.site-nav {
+  position: relative;
+  z-index: 10;
+  height: 76px;
+  display: grid;
+  grid-template-columns: 260px 1fr 330px;
+  align-items: center;
+  padding: 0 clamp(24px, 3vw, 48px);
+  border-bottom: 1px solid rgba(215, 226, 236, .86);
+  background: rgba(255, 255, 255, .84);
+  backdrop-filter: blur(18px);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  /* .brand 是 <router-link>（渲染为 <a>），需显式去除浏览器默认下划线与链接色，
+     否则项目名称「灵码工坊」会带下划线（router-link-active 状态下尤甚）。 */
+  text-decoration: none;
+  color: inherit;
+}
+
+.brand-symbol {
+  width: 48px;
+  height: 48px;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: white;
+}
+
+.brand-symbol img {
+  position: absolute;
+  width: 70px;
+  height: 65px;
+  left: -11px;
+  top: -5px;
+  object-fit: cover;
+}
+
+.brand-text {
+  font: 900 28px/1 var(--font-display);
+  letter-spacing: .02em;
+  color: #111821;
+}
+
+.menu {
+  display: flex;
+  justify-content: center;
+  gap: 47px;
+  color: #27313b;
+  font-size: 15px;
+}
+
+.menu a {
+  position: relative;
+  color: inherit;
+  text-decoration: none;
+  padding: 27px 0 25px;
+  transition: color .16s ease;
+}
+
+.menu a:hover {
+  color: var(--mint);
+}
+
+.menu a:active {
+  transform: translateY(1px);
+}
+
+.menu a.active {
+  color: #00aab3;
+  font-weight: 800;
+}
+
+.menu a.active::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 13px;
+  height: 2px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--cyan), var(--mint));
+}
+
+.nav-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 18px;
+}
+
+.sun {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  color: #64707c;
+  border-radius: 50%;
+  transition: background .16s ease, color .16s ease;
+}
+
+.sun:hover {
+  background: #edf6f8;
+  color: #00aab3;
+}
+
+.btn {
+  height: 40px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 0 24px;
+  border: 1px solid #d4e0ea;
+  border-radius: 11px;
+  background: white;
+  color: #1f2a34;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 20px rgba(24, 35, 48, .05);
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease, background .16s ease, opacity .16s ease;
+}
+
+.btn:hover {
+  transform: translateY(-1px);
+  border-color: rgba(0, 201, 209, .55);
+  box-shadow: 0 13px 28px rgba(0, 150, 190, .12);
+}
+
+.btn:active {
+  transform: translateY(1px) scale(.985);
+  box-shadow: 0 5px 12px rgba(24, 35, 48, .08);
+}
+
+.btn.primary {
+  border: 0;
+  color: white;
+  padding-inline: 26px;
+  background: linear-gradient(135deg, #04d2dc, #16c99d);
+  box-shadow: 0 15px 28px rgba(0, 196, 186, .28);
+}
+
+.btn.primary:hover {
+  filter: saturate(1.05);
+  box-shadow: 0 18px 36px rgba(0, 196, 186, .34);
+}
+
+.btn:disabled {
+  opacity: .42;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+@media (max-width: 1180px) {
+  .site-nav {
+    grid-template-columns: 220px 1fr auto;
+    padding-inline: 20px;
+  }
+
+  .menu {
+    gap: 24px;
+  }
+
+  .nav-actions {
+    gap: 10px;
+  }
+}
+
+@media (max-width: 820px) {
+  .site-nav {
+    height: auto;
+    grid-template-columns: 1fr;
+    gap: 14px;
+    padding-block: 14px;
+  }
+
+  .menu {
+    justify-content: flex-start;
+    gap: 18px;
+    overflow-x: auto;
+  }
+
+  .nav-actions {
+    justify-content: flex-start;
+  }
+}
+
+/* ==========================================
+   Premium Page Transition Animations
+   ========================================== */
+
+/* Enable native cross-document page transitions (Chromium 126+) */
+@view-transition {
+  navigation: auto;
+}
+
+/* Custom view transition animations matching premium design aesthetics */
+::view-transition-old(root) {
+  animation: 220ms cubic-bezier(0.4, 0, 1, 1) both fade-out,
+    550ms cubic-bezier(0.16, 1, 0.3, 1) both slide-to-left;
+}
+
+::view-transition-new(root) {
+  animation: 420ms cubic-bezier(0, 0, 0.2, 1) 120ms both fade-in,
+    550ms cubic-bezier(0.16, 1, 0.3, 1) both slide-from-right;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-to-left {
+  from {
+    transform: translateX(0);
+  }
+
+  to {
+    transform: translateX(-24px);
+  }
+}
+
+@keyframes slide-from-right {
+  from {
+    transform: translateX(24px);
+  }
+
+  to {
+    transform: translateX(0);
+  }
+}
+
+/* Fallback page entrance animation for browsers that do not support View Transitions (Firefox, Safari) */
+@supports not (view-transition-name: root) {
+  @keyframes page-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  body {
+    opacity: 0;
+    animation: page-enter 0.75s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+}
+
+/* Unified Navigation Avatar */
+.nav-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 2px solid var(--mint);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+  flex-shrink: 0;
+}
+
+.nav-avatar:hover {
+  transform: scale(1.05);
+  border-color: var(--cyan);
+  box-shadow: 0 6px 14px rgba(0, 229, 255, 0.18);
+}
+
+.nav-avatar.active {
+  border-color: #00aab3;
+  box-shadow: 0 0 8px rgba(0, 170, 179, 0.4);
+}
+
+.nav-avatar img {
+  width: 120%;
+  height: 120%;
+  object-fit: cover;
+  transform: translateY(1.5px);
+}

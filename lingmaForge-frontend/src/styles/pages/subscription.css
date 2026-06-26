@@ -1,0 +1,957 @@
+/* Subscription & Usage Page Specific Stylesheet */
+
+:root {
+  --sub-bg: #f8fbfd;
+  --sub-card-bg: #ffffff;
+  --sub-border: #eef3f7;
+  --sub-text-primary: #1d2732;
+  --sub-text-secondary: #697686;
+  --sub-primary-color: #00b8c4;
+  --sub-primary-gradient: linear-gradient(135deg, #00b8c4 0%, #19c990 100%);
+  --sub-pro-bg: linear-gradient(135deg, #f3f9fc 0%, #edfcf7 100%);
+  --sub-danger-color: #ff4d4f;
+  --sub-success-color: #19c990;
+  --sub-warning-color: #ff7a00;
+}
+
+.sub-view {
+  background: var(--sub-bg);
+  min-height: calc(100vh - 76px - 50px); /* Subtract header(76px) and footer(50px) heights */
+  padding: 32px 0 48px;
+  position: relative;
+  z-index: 1;
+}
+
+.pricing-container {
+  width: min(1540px, calc(100% - clamp(28px, 4vw, 64px)));
+  margin: 0 auto;
+  position: relative;
+  z-index: 2;
+  font-family: var(--font-ui);
+}
+
+/* Page Header */
+.sub-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 28px;
+  padding: 0 4px;
+}
+
+.sub-title-area h1 {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--sub-text-primary);
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
+}
+
+.sub-title-area p {
+  font-size: 13.5px;
+  color: var(--sub-text-secondary);
+  margin: 0;
+}
+
+.sub-header-info {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  font-size: 13.5px;
+  color: var(--sub-text-secondary);
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.info-label {
+  color: var(--sub-text-secondary);
+}
+
+.info-value {
+  font-weight: 700;
+  color: var(--sub-text-primary);
+}
+
+.info-value.pro-text {
+  color: var(--sub-primary-color);
+}
+
+.badge-live {
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  color: #1890ff;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.badge-renew {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  color: var(--sub-success-color);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+/* Top Cards Layout: 2 Columns */
+.sub-top-grid {
+  display: grid;
+  grid-template-columns: 1.1fr 0.9fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.sub-card {
+  background: var(--sub-card-bg);
+  border: 1px solid #dce6ef;
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: 0 8px 24px rgba(28, 42, 58, 0.04);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Card 1: Current Plan Details */
+.plan-detail-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.plan-info-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.plan-title-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.plan-name-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.plan-name {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--sub-text-primary);
+}
+
+.badge-recommend {
+  background: #fff6ee;
+  border: 1px solid #ffd8b3;
+  color: var(--sub-warning-color);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.plan-type {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--sub-text-secondary);
+}
+
+.plan-desc {
+  font-size: 13px;
+  color: var(--sub-text-secondary);
+}
+
+.plan-price-box {
+  text-align: right;
+}
+
+.plan-price {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--sub-text-primary);
+  font-family: var(--font-display);
+}
+
+.plan-price span {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sub-text-secondary);
+}
+
+.plan-tax {
+  font-size: 11px;
+  color: var(--sub-text-secondary);
+  margin-top: 2px;
+}
+
+/* Feature Ribbon Row */
+.plan-features-ribbon {
+  background: #f4f8fb;
+  border-radius: 12px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.ribbon-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--sub-text-primary);
+}
+
+.ribbon-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1.5px solid rgba(0, 184, 196, 0.3);
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ribbon-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.ribbon-item svg.icon-check {
+  color: var(--sub-primary-color);
+  width: 15px;
+  height: 15px;
+}
+
+/* Progress & Actions */
+.plan-progress-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+}
+
+.plan-progress-left {
+  flex: 1;
+}
+
+.progress-text-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12.5px;
+  color: var(--sub-text-secondary);
+  margin-bottom: 8px;
+}
+
+.progress-track-bg {
+  height: 8px;
+  background: #eef3f7;
+  border-radius: 99px;
+  overflow: hidden;
+  position: relative;
+}
+
+.progress-bar-fill {
+  height: 100%;
+  background: var(--sub-primary-gradient);
+  border-radius: 99px;
+}
+
+.plan-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.plan-btn-outline {
+  height: 40px;
+  padding: 0 20px;
+  border: 1.5px solid #dce6ef;
+  background: #fff;
+  color: var(--sub-text-primary);
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13.5px;
+  box-shadow: 0 2px 6px rgba(28, 42, 58, 0.02);
+  transition: all 0.2s;
+}
+
+.plan-btn-outline:hover {
+  border-color: var(--sub-primary-color);
+  color: var(--sub-primary-color);
+}
+
+.plan-btn-filled {
+  height: 40px;
+  padding: 0 24px;
+  border: none;
+  background: var(--sub-primary-gradient);
+  color: #fff;
+  font-weight: 700;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13.5px;
+  box-shadow: 0 4px 12px rgba(0, 184, 196, 0.2);
+  transition: all 0.2s;
+}
+
+.plan-btn-filled:hover {
+  filter: saturate(1.1);
+  box-shadow: 0 6px 16px rgba(0, 184, 196, 0.3);
+}
+
+/* Card 2: Pro Benefits Card */
+.pro-benefits-card {
+  background: var(--sub-pro-bg);
+  border: 1px solid rgba(0, 184, 196, 0.12);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-right: 40%; /* Space for mascot overlay */
+}
+
+.pro-benefits-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--sub-primary-color);
+  margin-bottom: 4px;
+}
+
+.pro-benefits-subtitle {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--sub-text-primary);
+  margin-bottom: 20px;
+}
+
+.pro-benefits-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.pro-benefits-list li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sub-text-primary);
+  margin-bottom: 12px;
+}
+
+.pro-benefits-list li:last-child {
+  margin-bottom: 0;
+}
+
+.pro-benefit-check {
+  width: 18px;
+  height: 18px;
+  background: rgba(0, 184, 196, 0.1);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--sub-primary-color);
+}
+
+.pro-benefit-check svg {
+  width: 11px;
+  height: 11px;
+}
+
+.pro-mascot-wrapper {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  top: 10px;
+  width: 40%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.pro-mascot-wrapper img {
+  height: 110%;
+  width: auto;
+  object-fit: contain;
+  position: absolute;
+  right: 5px;
+  bottom: -5px;
+}
+
+/* Metric Cards: 4 Column Row */
+.sub-metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+/* Metric Cards: 4 Column Row
+   限定在 .sub-metrics-row 作用域内，避免与 homepage.css 的同名 .metric-card
+   全局冲突——后者设定 width:171px / height:72px，未被本文件覆盖时会套用到
+   订阅页指标卡上，把 1fr 网格列挤成 171px、把多行内容压进 72px，导致文字与
+   进度条溢出卡片。此处显式 width/height:auto 兜底，并以更高特异性稳赢。 */
+.sub-metrics-row .metric-card {
+  width: auto;
+  height: auto;
+  background: var(--sub-card-bg);
+  border: 1px solid #dce6ef;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(28, 42, 58, 0.02);
+  display: flex;
+  flex-direction: column;
+}
+
+.sub-metrics-row .metric-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.sub-metrics-row .metric-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--sub-text-primary);
+}
+
+.sub-metrics-row .metric-title svg {
+  color: var(--sub-text-secondary);
+  width: 16px;
+  height: 16px;
+}
+
+.sub-metrics-row .metric-info-icon {
+  color: #bdc8d3;
+  cursor: pointer;
+  width: 14px;
+  height: 14px;
+}
+
+.sub-metrics-row .metric-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.sub-metrics-row .metric-curr {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--sub-text-primary);
+  font-family: var(--font-display);
+}
+
+.sub-metrics-row .metric-max {
+  font-size: 13px;
+  color: var(--sub-text-secondary);
+}
+
+.sub-metrics-row .metric-progress-wrapper {
+  margin-bottom: 12px;
+}
+
+.sub-metrics-row .metric-progress-bg {
+  height: 6px;
+  background: #f0f4f8;
+  border-radius: 99px;
+  overflow: hidden;
+}
+
+.sub-metrics-row .metric-progress-fill {
+  height: 100%;
+  background: var(--sub-primary-color);
+  border-radius: 99px;
+}
+
+.sub-metrics-row .metric-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: var(--sub-text-secondary);
+  margin-top: auto;
+}
+
+.sub-metrics-row .metric-manage-link {
+  color: var(--sub-primary-color);
+  text-decoration: none;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.sub-metrics-row .metric-manage-link:hover {
+  text-decoration: underline;
+}
+
+/* Bottom Grid Layout: 3 Columns (50% / 25% / 25%) */
+.sub-bottom-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 24px;
+}
+
+.bottom-card-title {
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--sub-text-primary);
+  margin-bottom: 18px;
+}
+
+/* Bills Table Card */
+.bills-card {
+  padding: 24px;
+}
+
+.bills-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  margin-bottom: 16px;
+}
+
+.bills-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.bills-table th,
+.bills-table td {
+  padding: 12px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid #f0f4f8;
+}
+
+.bills-table th {
+  color: var(--sub-text-secondary);
+  font-weight: 700;
+  background: #f8fafc;
+}
+
+.bills-table td {
+  color: var(--sub-text-primary);
+}
+
+.bills-table td.bill-amount {
+  font-weight: 700;
+}
+
+.bills-table th:first-child,
+.bills-table td:first-child {
+  padding-left: 0;
+}
+
+.bills-table th:last-child,
+.bills-table td:last-child {
+  padding-right: 0;
+  text-align: right;
+}
+
+.badge-paid {
+  background: #f6ffed;
+  border: 1px solid #b7eb8f;
+  color: var(--sub-success-color);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.bill-action-link {
+  color: var(--sub-primary-color);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.bill-action-link:hover {
+  text-decoration: underline;
+}
+
+.view-all-bills-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sub-primary-color);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.view-all-bills-link:hover {
+  text-decoration: underline;
+}
+
+/* Payment Methods Card */
+.payments-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.payment-method-item {
+  border: 1px solid var(--sub-border);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.payment-method-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.card-brand-logo {
+  font-weight: 900;
+  font-size: 16px;
+  color: #1a1f71; /* Visa Brand Blue */
+  font-style: italic;
+  font-family: sans-serif;
+  letter-spacing: -0.05em;
+}
+
+.payment-method-info {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sub-text-primary);
+}
+
+.badge-default {
+  background: #e6f7ff;
+  border: 1px solid #91d5ff;
+  color: #1890ff;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.add-payment-btn {
+  border: 1.5px dashed #cbd9e5;
+  background: #fff;
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--sub-text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.add-payment-btn:hover {
+  border-color: var(--sub-primary-color);
+  color: var(--sub-primary-color);
+}
+
+/* Subscription Settings Card */
+.settings-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.settings-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 14px;
+  border-bottom: 1px solid #f8fafc;
+}
+
+.setting-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.setting-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.setting-label {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--sub-text-primary);
+}
+
+.setting-desc {
+  font-size: 11px;
+  color: var(--sub-text-secondary);
+}
+
+/* Switch Toggle Button */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 44px;
+  height: 22px;
+}
+
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.slider {
+  position: absolute;
+  cursor: pointer;
+  inset: 0;
+  background-color: #bdc8d3;
+  transition: .2s;
+  border-radius: 34px;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .2s;
+  border-radius: 50%;
+}
+
+input:checked + .slider {
+  background-color: var(--sub-primary-color);
+}
+
+input:checked + .slider:before {
+  transform: translateX(22px);
+}
+
+.setting-arrow-btn {
+  background: transparent;
+  border: none;
+  color: #bdc8d3;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+}
+
+.setting-arrow-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.setting-arrow-btn:hover {
+  color: var(--sub-primary-color);
+}
+
+.cancel-subscription-row {
+  margin-top: 24px;
+  text-align: left;
+}
+
+.cancel-subscription-link {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--sub-danger-color);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.cancel-subscription-link:hover {
+  text-decoration: underline;
+}
+
+/* Footer Center Brand Navigation */
+.sub-footer-brand-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.brand-nav-icon {
+  width: 38px;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: #f0f4f8;
+  border: 1px solid rgba(220, 230, 239, 0.5);
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+
+.brand-nav-icon:hover {
+  background: #e6f7ff;
+  border-color: var(--sub-primary-color);
+}
+
+.brand-nav-icon img {
+  width: 24px;
+  height: 24px;
+  object-fit: contain;
+}
+
+.brand-nav-icon.logo-icon {
+  overflow: hidden;
+}
+
+.brand-nav-icon.logo-icon img {
+  width: 52px;
+  height: 52px;
+  position: absolute;
+  left: -7px;
+  top: -3px;
+  max-width: none;
+}
+
+.brand-nav-icon svg {
+  width: 22px;
+  height: 22px;
+  color: var(--sub-text-secondary);
+  stroke-width: 2;
+}
+
+.brand-nav-icon.active {
+  background: #fff;
+  border-color: var(--sub-primary-color);
+  box-shadow: 0 4px 10px rgba(0, 184, 196, 0.1);
+}
+
+.brand-nav-icon.active svg {
+  color: var(--sub-primary-color);
+}
+
+/* Footer Slogan area */
+.sub-footer-slogan {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.slogan-highlight {
+  color: var(--sub-primary-color);
+}
+
+.slogan-muted {
+  color: var(--sub-text-secondary);
+}
+
+.footer-color-dots {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.color-dot {
+  width: 14px;
+  height: 7px;
+  border-radius: 99px;
+}
+
+.color-dot.cyan { background: var(--sub-primary-color); }
+.color-dot.green { background: var(--sub-success-color); }
+.color-dot.orange { background: var(--sub-warning-color); }
+.color-dot.black { background: var(--sub-text-primary); }
+.color-dot.grey { background: #cbd9e5; }
+
+/* Footer Layout Styles */
+.site-footer {
+  border-top: 1px solid var(--line);
+  background: #fff;
+  padding: 20px 48px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13.5px;
+  color: var(--muted);
+  width: 100%;
+  position: relative;
+  z-index: 5;
+}
+
+.footer-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.footer-page-num {
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.footer-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+}
+
+@media (max-width: 1024px) {
+  .sub-top-grid {
+    grid-template-columns: 1fr;
+  }
+  .sub-metrics-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .sub-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+  .pro-benefits-card {
+    padding-right: 28px;
+  }
+  .pro-mascot-wrapper {
+    display: none;
+  }
+  .site-footer {
+    flex-direction: column;
+    gap: 20px;
+    padding: 24px;
+    text-align: center;
+  }
+}
