@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>灵码工坊 - 订阅与用量</title>
+  <link rel="stylesheet" href="样式表/shared.css" />
+  <link rel="stylesheet" href="样式表/subscription.css" />
+  <style>
+    /* Light breathing aura background for subscription page */
+    .sub-view::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(90deg, rgba(0, 188, 213, 0.015) 1px, transparent 1px) 0 0 / 54px 54px,
+        linear-gradient(0deg, rgba(255, 198, 46, 0.01) 1px, transparent 1px) 0 0 / 54px 54px;
+      mask-image: radial-gradient(circle at 50% 30%, black 50%, transparent 90%);
+      pointer-events: none;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+  <!-- SVG Symbols for common icons -->
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+    <symbol id="zap" viewBox="0 0 24 24"><path d="M13 2 3 14h8l-1 8 11-13h-8z"/></symbol>
+    <symbol id="shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-5"/></symbol>
+    <symbol id="cube" viewBox="0 0 24 24"><path d="m12 2 8 4.5v9L12 20l-8-4.5v-9z"/><path d="M4 6.5 12 11l8-4.5"/><path d="M12 11v9"/></symbol>
+    <symbol id="user" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="chevron-down" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></symbol>
+    <symbol id="info" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></symbol>
+    <symbol id="check" viewBox="0 0 24 24"><path d="M20 6L9 17l-5-5"/></symbol>
+    <symbol id="clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></symbol>
+    <symbol id="database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/><path d="M3 12c0 1.66 4 3 9 3s9-1.34 9-3"/></symbol>
+    <symbol id="settings" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></symbol>
+    <symbol id="adjustments" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></symbol>
+    <symbol id="sliders" viewBox="0 0 24 24"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><circle cx="4" cy="12" r="2"/><circle cx="12" cy="10" r="2"/><circle cx="20" cy="14" r="2"/></symbol>
+    <symbol id="spark" viewBox="0 0 24 24"><path d="M12 2 9 10 2 12l7 2 3 8 3-8 7-2-7-2-3-8Z"/></symbol>
+    <symbol id="orbit" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></symbol>
+  </svg>
+
+  <div class="shot">
+    <!-- Top Navigation Bar -->
+    <nav class="site-nav">
+      <div class="brand">
+        <div class="brand-symbol"><img src="品牌素材/lingma-forge-logo.png" alt="灵码工坊 Logo"></div>
+        <div class="brand-text">灵码工坊</div>
+      </div>
+      <div class="menu">
+        <a href="lingma-homepage.html">首页</a>
+        <a href="lingma-creative.html">创意中心</a>
+        <a href="lingma-workbench.html">工作台</a>
+        <a class="active" href="lingma-subscription.html">订阅</a>
+        <a href="lingma-pricing.html">价格</a>
+        <a href="lingma-doc.html">文档</a>
+      </div>
+      <div class="nav-actions">
+        <span class="sun"><svg class="icon"><use href="#sun"/></svg></span>
+        <button class="btn" onclick="location.href='lingma-auth.html'">登录</button>
+        <button class="btn primary" onclick="location.href='lingma-auth.html#register'">免费开始</button>
+        <a href="lingma-profile.html" class="nav-avatar" title="个人中心">
+          <img src="品牌素材/首页素材/lingma-forge-mascot-v2.png" alt="User Avatar">
+        </a>
+      </div>
+    </nav>
+
+    <!-- Subscription & Usage Page Content -->
+    <div class="sub-view">
+      <div class="pricing-container">
+        
+        <!-- Header area -->
+        <header class="sub-page-header">
+          <div class="sub-title-area">
+            <h1>订阅与用量</h1>
+            <p>管理你的订阅方案、用量与支付信息</p>
+          </div>
+          <div class="sub-header-info">
+            <div class="info-item">
+              <span class="info-label">当前方案:</span>
+              <span class="info-value pro-text">灵码 Pro</span>
+              <span class="badge-live">当前生效</span>
+            </div>
+            <div style="width:1px; height:16px; background:#cbd9e5;"></div>
+            <div class="info-item">
+              <span class="info-label">下次续费:</span>
+              <span class="info-value">2025-06-30</span>
+              <span class="badge-renew">自动续费</span>
+            </div>
+          </div>
+        </header>
+
+        <!-- Top Layout Grid: Left detail card + Right benefit card -->
+        <div class="sub-top-grid">
+          
+          <!-- Card 1: Current Plan Details -->
+          <div class="sub-card plan-detail-card">
+            <div>
+              <div class="plan-info-top">
+                <div class="plan-title-box">
+                  <small style="font-size:12px; color:var(--sub-text-secondary); font-weight:700;">当前方案</small>
+                  <div class="plan-name-row">
+                    <span class="plan-name">灵码 Pro</span>
+                    <span class="badge-recommend">推荐</span>
+                  </div>
+                  <div class="plan-type">专业版 · 按月订阅</div>
+                  <div class="plan-desc">每月享 15,000 次 AI 生成 · 专属客服 · 高级模型</div>
+                </div>
+                <div class="plan-price-box">
+                  <div class="plan-price">¥ 49<span>/ 月</span></div>
+                  <div class="plan-tax">含税</div>
+                </div>
+              </div>
+
+              <!-- Feature ribbon bar -->
+              <div class="plan-features-ribbon">
+                <div class="ribbon-item">
+                  <div class="ribbon-avatar">
+                    <img src="../设计素材/产品界面素材/头像/头像1.jpg" alt="Avatar" />
+                  </div>
+                  <span>专属高级模型</span>
+                </div>
+                <div class="ribbon-item">
+                  <svg class="icon ribbon-item-check" style="color:var(--sub-success-color); width:16px; height:16px;"><use href="#check"/></svg>
+                  <span>优先处理通道</span>
+                </div>
+                <div class="ribbon-item">
+                  <svg class="icon ribbon-item-check" style="color:var(--sub-success-color); width:16px; height:16px;"><use href="#check"/></svg>
+                  <span>无限项目数量</span>
+                </div>
+                <div class="ribbon-item">
+                  <svg class="icon ribbon-item-check" style="color:var(--sub-success-color); width:16px; height:16px;"><use href="#check"/></svg>
+                  <span>专属客服支持</span>
+                </div>
+                <div class="ribbon-item">
+                  <svg class="icon ribbon-item-check" style="color:var(--sub-success-color); width:16px; height:16px;"><use href="#check"/></svg>
+                  <span>多设备同步</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Progress and Buttons row -->
+            <div class="plan-progress-actions">
+              <div class="plan-progress-left">
+                <div class="progress-text-row">
+                  <span>当前计费周期: 2025-05-30 ~ 2025-06-30</span>
+                  <span style="font-weight:700; color:var(--sub-text-primary);">剩余 16 天</span>
+                </div>
+                <div class="progress-track-bg">
+                  <div class="progress-bar-fill" style="width: 53%;"></div>
+                </div>
+              </div>
+              <div class="plan-actions-right">
+                <button class="plan-btn-outline">管理订阅</button>
+                <button class="plan-btn-filled">升级套餐</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Pro Benefits Card with Mascot overlay -->
+          <div class="sub-card pro-benefits-card">
+            <div class="pro-benefits-title">灵码 Pro 会员</div>
+            <div class="pro-benefits-subtitle">尊享更多专业能力</div>
+            <ul class="pro-benefits-list">
+              <li>
+                <div class="pro-benefit-check"><svg class="icon"><use href="#check"/></svg></div>
+                <span>每月 15,000 次 AI 生成 (含高级模型)</span>
+              </li>
+              <li>
+                <div class="pro-benefit-check"><svg class="icon"><use href="#check"/></svg></div>
+                <span>专属客服 · 优先响应</span>
+              </li>
+              <li>
+                <div class="pro-benefit-check"><svg class="icon"><use href="#check"/></svg></div>
+                <span>无限项目与团队协作</span>
+              </li>
+              <li>
+                <div class="pro-benefit-check"><svg class="icon"><use href="#check"/></svg></div>
+                <span>数据隐私保护与安全合规</span>
+              </li>
+              <li>
+                <div class="pro-benefit-check"><svg class="icon"><use href="#check"/></svg></div>
+                <span>成员管理与权限控制</span>
+              </li>
+            </ul>
+            <div class="pro-mascot-wrapper">
+              <img src="../设计素材/产品界面素材/订阅素材/subscription-pro-mascot-cubes抠图.png" alt="Pro Mascot" />
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Metric Cards row -->
+        <div class="sub-metrics-row">
+          
+          <!-- Metric 1: AI次数 -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">
+                <svg class="icon" style="stroke-width:1.8;"><use href="#zap"/></svg>
+                <span>AI 生成次数</span>
+              </div>
+              <svg class="icon metric-info-icon"><use href="#info"/></svg>
+            </div>
+            <div class="metric-value-row">
+              <span class="metric-curr">8,642</span>
+              <span class="metric-max">/ 15,000 次</span>
+            </div>
+            <div class="metric-progress-wrapper">
+              <div class="metric-progress-bg">
+                <div class="metric-progress-fill" style="width: 57.6%;"></div>
+              </div>
+            </div>
+            <div class="metric-footer">
+              <span>57% 已使用</span>
+              <span>重置于 2025-06-30</span>
+            </div>
+          </div>
+
+          <!-- Metric 2: Token用量 -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">
+                <svg class="icon"><use href="#database"/></svg>
+                <span>Token 用量</span>
+              </div>
+              <svg class="icon metric-info-icon"><use href="#info"/></svg>
+            </div>
+            <div class="metric-value-row">
+              <span class="metric-curr">128,842</span>
+              <span class="metric-max">/ 200,000</span>
+            </div>
+            <div class="metric-progress-wrapper">
+              <div class="metric-progress-bg">
+                <div class="metric-progress-fill" style="width: 64.4%;"></div>
+              </div>
+            </div>
+            <div class="metric-footer">
+              <span>64% 已使用</span>
+              <span>重置于 2025-06-30</span>
+            </div>
+          </div>
+
+          <!-- Metric 3: 部署时长 -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">
+                <svg class="icon"><use href="#clock"/></svg>
+                <span>部署时长</span>
+              </div>
+              <svg class="icon metric-info-icon"><use href="#info"/></svg>
+            </div>
+            <div class="metric-value-row">
+              <span class="metric-curr">32.6</span>
+              <span class="metric-max">/ 100 小时</span>
+            </div>
+            <div class="metric-progress-wrapper">
+              <div class="metric-progress-bg">
+                <div class="metric-progress-fill" style="width: 32.6%;"></div>
+              </div>
+            </div>
+            <div class="metric-footer">
+              <span>33% 已使用</span>
+              <span>重置于 2025-06-30</span>
+            </div>
+          </div>
+
+          <!-- Metric 4: 团队席位 -->
+          <div class="metric-card">
+            <div class="metric-header">
+              <div class="metric-title">
+                <svg class="icon"><use href="#user"/></svg>
+                <span>团队席位</span>
+              </div>
+              <svg class="icon metric-info-icon"><use href="#info"/></svg>
+            </div>
+            <div class="metric-value-row">
+              <span class="metric-curr">4</span>
+              <span class="metric-max">/ 10 个席位</span>
+            </div>
+            <div class="metric-progress-wrapper">
+              <div class="metric-progress-bg">
+                <div class="metric-progress-fill" style="width: 40%;"></div>
+              </div>
+            </div>
+            <div class="metric-footer">
+              <span>40% 已使用</span>
+              <a class="metric-manage-link">管理成员</a>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Bottom Layout Grid: Bills + Payments + Settings -->
+        <div class="sub-bottom-grid">
+          
+          <!-- Column 1: 账单与支付记录 -->
+          <div class="sub-card bills-card">
+            <div class="bottom-card-title">账单与支付记录</div>
+            <div class="bills-table-wrapper">
+              <table class="bills-table">
+                <thead>
+                  <tr>
+                    <th>账单日期</th>
+                    <th>账单编号</th>
+                    <th>金额</th>
+                    <th>支付状态</th>
+                    <th>操作</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td>2025-05-30</td>
+                    <td>INV20250530012</td>
+                    <td class="bill-amount">¥ 49.00</td>
+                    <td><span class="badge-paid">已支付</span></td>
+                    <td><a href="#" class="bill-action-link">下载发票</a></td>
+                  </tr>
+                  <tr>
+                    <td>2025-04-30</td>
+                    <td>INV20250430011</td>
+                    <td class="bill-amount">¥ 49.00</td>
+                    <td><span class="badge-paid">已支付</span></td>
+                    <td><a href="#" class="bill-action-link">下载发票</a></td>
+                  </tr>
+                  <tr>
+                    <td>2025-03-30</td>
+                    <td>INV20250330010</td>
+                    <td class="bill-amount">¥ 49.00</td>
+                    <td><span class="badge-paid">已支付</span></td>
+                    <td><a href="#" class="bill-action-link">下载发票</a></td>
+                  </tr>
+                  <tr>
+                    <td>2025-02-28</td>
+                    <td>INV20250228009</td>
+                    <td class="bill-amount">¥ 49.00</td>
+                    <td><span class="badge-paid">已支付</span></td>
+                    <td><a href="#" class="bill-action-link">下载发票</a></td>
+                  </tr>
+                  <tr>
+                    <td>2025-01-30</td>
+                    <td>INV20250130008</td>
+                    <td class="bill-amount">¥ 49.00</td>
+                    <td><span class="badge-paid">已支付</span></td>
+                    <td><a href="#" class="bill-action-link">下载发票</a></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <a class="view-all-bills-link">
+              查看全部账单
+              <svg class="icon" style="width:13px; height:13px;"><use href="#chevron-right"/></svg>
+            </a>
+          </div>
+
+          <!-- Column 2: 支付方式 -->
+          <div class="sub-card payments-card">
+            <div class="bottom-card-title">支付方式</div>
+            <div class="payment-method-item">
+              <div class="payment-method-left">
+                <span class="card-brand-logo">VISA</span>
+                <div class="payment-method-info">
+                  Visa **** 8888
+                </div>
+              </div>
+              <span class="badge-default">默认</span>
+            </div>
+            <button class="add-payment-btn">
+              <svg class="icon" style="width:14px; height:14px;"><use href="#plus"/></svg>
+              添加支付方式
+            </button>
+          </div>
+
+          <!-- Column 3: 订阅设置 -->
+          <div class="sub-card settings-card">
+            <div>
+              <div class="bottom-card-title">订阅设置</div>
+              <div class="settings-list">
+                
+                <!-- Toggle 1 -->
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">自动续费</span>
+                    <span class="setting-desc">到期前将自动按当前方案续费</span>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" checked />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <!-- Toggle 2 -->
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">续费提醒</span>
+                    <span class="setting-desc">到期前 3 天通过邮件提醒我</span>
+                  </div>
+                  <button class="setting-arrow-btn">
+                    <svg class="icon"><use href="#chevron-right"/></svg>
+                  </button>
+                </div>
+
+                <!-- Toggle 3 -->
+                <div class="setting-row">
+                  <div class="setting-info">
+                    <span class="setting-label">用量提醒</span>
+                    <span class="setting-desc">用量达到 80% 时提醒我</span>
+                  </div>
+                  <button class="setting-arrow-btn">
+                    <svg class="icon"><use href="#chevron-right"/></svg>
+                  </button>
+                </div>
+
+              </div>
+            </div>
+            <div class="cancel-subscription-row">
+              <a class="cancel-subscription-link">取消订阅</a>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Page Footer -->
+    <footer class="site-footer" style="padding: 16px 48px;">
+      <div class="footer-left">
+        <span class="footer-page-num">02 / 08</span>
+        <span>&copy; LINGMA FORGE</span>
+      </div>
+      <div class="footer-center">
+        <!-- 7 Brand Navigation Icons -->
+        <div class="sub-footer-brand-nav">
+          <a href="lingma-homepage.html" class="brand-nav-icon logo-icon" title="首页">
+            <img src="品牌素材/lingma-forge-logo.png" alt="Logo" />
+          </a>
+          <a href="lingma-creative.html" class="brand-nav-icon" title="创意中心">
+            <img src="../设计素材/产品界面素材/订阅素材/subscription-gold-module-cube抠像.png" alt="Cube" />
+          </a>
+          <a href="lingma-workbench.html" class="brand-nav-icon" title="工作台">
+            <img src="../设计素材/产品界面素材/头像/subscription-mascot-avatar抠像.png" alt="Avatar" />
+          </a>
+          <a href="lingma-doc.html" class="brand-nav-icon" title="文档">
+            <svg class="icon" style="stroke-width:2.5;"><use href="#file-code"/></svg>
+          </a>
+          <a href="#" class="brand-nav-icon" title="灵感">
+            <svg class="icon"><use href="#spark"/></svg>
+          </a>
+          <a href="lingma-pricing.html" class="brand-nav-icon" title="价格">
+            <svg class="icon"><use href="#orbit"/></svg>
+          </a>
+          <a href="lingma-subscription.html" class="brand-nav-icon active" title="订阅与用量">
+            <svg class="icon"><use href="#adjustments"/></svg>
+          </a>
+        </div>
+      </div>
+      <div class="footer-right">
+        <!-- Slogan and Colors -->
+        <div class="sub-footer-slogan">
+          <span class="slogan-highlight">灵感一触即发</span>
+          <span style="color:#cbd9e5;">&middot;</span>
+          <span class="slogan-muted">让创造更简单</span>
+        </div>
+        <div class="footer-color-dots">
+          <span class="color-dot cyan"></span>
+          <span class="color-dot green"></span>
+          <span class="color-dot orange"></span>
+          <span class="color-dot black"></span>
+          <span class="color-dot grey"></span>
+        </div>
+      </div>
+    </footer>
+  </div>
+
+  <script>
+    // Toggle active state for footer icons
+    const icons = document.querySelectorAll('.brand-nav-icon');
+    icons.forEach(icon => {
+      icon.addEventListener('click', () => {
+        icons.forEach(i => i.classList.remove('active'));
+        icon.classList.add('active');
+      });
+    });
+  </script>
+</body>
+</html>

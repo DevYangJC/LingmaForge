@@ -1,0 +1,17 @@
+package com.lingmaforge.backend.model;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
+/**
+ * 迭代修改请求体。
+ */
+public record IterateRequest(
+        @NotNull(message = "项目 ID 不能为空")
+        Long projectId,
+
+        @NotBlank(message = "修改指令不能为空")
+        @Size(max = 2000, message = "修改指令不能超过 2000 个字符")
+        String prompt) {
+}

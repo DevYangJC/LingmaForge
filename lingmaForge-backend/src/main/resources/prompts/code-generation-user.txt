@@ -1,0 +1,19 @@
+## 项目概述
+应用名称：{{appName}}
+描述：{{description}}
+
+## 当前任务
+请生成文件: {{filePath}}
+文件类型: {{fileType}}
+文件描述：{{fileDescription}}
+
+## 可用上下文（已生成的依赖文件）
+{{fileContext}}
+
+## 需求规范（来自需求分析）
+{{analysisResult}}
+
+## 当前构建错误（若有，请修复相关文件）
+{{buildError}}
+
+请调用 writeFile 工具写入该文件的完整内容。

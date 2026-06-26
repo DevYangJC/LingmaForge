@@ -1,0 +1,53 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: lingmaForge-backend
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:file:./data/lingmaforge;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    username: sa
+    password:
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  sql:
+    init:
+      mode: always
+
+mybatis-plus:
+  mapper-locations: classpath*:/mapper/**/*.xml
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_id
+
+lingma:
+  # 项目工作区根目录（生成的项目源码落盘位置，后续挂载到沙箱容器）
+  workspace-root: ${LINGMA_WORKSPACE_ROOT:./workspace}
+  ai:
+    # OpenAI 兼容协议接入，默认 DashScope 兼容模式
+    api-key: ${AI_DASHSCOPE_API_KEY:demo-key}
+    base-url: ${AI_OPENAI_COMPATIBLE_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
+    model-name: ${AI_CHAT_MODEL:qwen-plus}
+    log-requests: false
+    log-responses: false
+    max-retries: 2
+  pipeline:
+    # 代码生成流水线模型路由（当前复用单一 ChatModel Bean，多模型可在 LangChain4jConfig 扩展）
+    analysis-model: deepseek-v3
+    code-gen-model: qwen-plus
+    style-model: deepseek-v3
+    # 构建失败后回退到代码生成的最大重试次数
+    max-retry-count: 2
+  sandbox:
+    # 构建开关：关闭时跳过真实 npm build，流水线可端到端跑通；开启后在项目工作区执行真实构建
+    build-enabled: ${LINGMA_BUILD_ENABLED:false}
+    node-binary: ${LINGMA_NODE_BINARY:node}
+    npm-binary: ${LINGMA_NPM_BINARY:npm}
+    build-timeout-seconds: 180
+    base-preview-host: ${LINGMA_PREVIEW_HOST:sandbox.lingmaforge.local}
+    preview-port: 5173

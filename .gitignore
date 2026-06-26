@@ -1,0 +1,77 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Frontend build output
+dist/
+dist-ssr/
+**/dist/
+**/dist-ssr/
+.vite/
+**/.vite/
+*.tsbuildinfo
+
+# Backend build output
+target/
+**/target/
+build/
+**/build/
+out/
+**/out/
+
+# Logs
+logs/
+**/logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Local environment files
+.env
+.env.*
+*.local
+!.env.example
+!.env.*.example
+
+# IDE and OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+.idea/
+*.iml
+.vscode/*
+!**/.vscode/extensions.json
+
+# Temporary and cache files
+tmp/
+temp/
+.cache/
+**/.cache/
+.eslintcache
+*.timestamp-*-*.mjs
+*.tmp
+*.bak
+*.swp
+*.swo
+
+# Test and coverage artifacts
+coverage/
+**/coverage/
+__screenshots__/
+**/__screenshots__/
+cypress/videos/
+cypress/screenshots/
+**/cypress/videos/
+**/cypress/screenshots/
+
+# Local agent/tooling state
+.workbuddy/
+.codex/
+.agents/
+
+# Generated local outputs
+outputs/
+output/

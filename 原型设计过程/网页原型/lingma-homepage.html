@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>灵码工坊 - 首页高保真还原</title>
+  <link rel="stylesheet" href="样式表/shared.css" />
+  <link rel="stylesheet" href="样式表/homepage.css" />
+</head>
+<body>
+  <svg width="0" height="0" style="position:absolute">
+    <symbol id="chevron-left" viewBox="0 0 24 24"><path d="m15 18-6-6 6-6"/></symbol>
+    <symbol id="chevron-right" viewBox="0 0 24 24"><path d="m9 18 6-6-6-6"/></symbol>
+    <symbol id="share" viewBox="0 0 24 24"><path d="M12 3v12"/><path d="m7 8 5-5 5 5"/><path d="M5 13v6h14v-6"/></symbol>
+    <symbol id="plus" viewBox="0 0 24 24"><path d="M12 5v14"/><path d="M5 12h14"/></symbol>
+    <symbol id="copy" viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></symbol>
+    <symbol id="lock" viewBox="0 0 24 24"><rect x="5" y="10" width="14" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></symbol>
+    <symbol id="spark" viewBox="0 0 24 24"><path d="M12 2 9 10 2 12l7 2 3 8 3-8 7-2-7-2-3-8Z"/></symbol>
+    <symbol id="message" viewBox="0 0 24 24"><path d="M21 15a4 4 0 0 1-4 4H8l-5 3V7a4 4 0 0 1 4-4h10a4 4 0 0 1 4 4z"/></symbol>
+    <symbol id="play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="m10 8 6 4-6 4z"/></symbol>
+    <symbol id="zap" viewBox="0 0 24 24"><path d="M13 2 3 14h8l-1 8 11-13h-8z"/></symbol>
+    <symbol id="shield" viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-5"/></symbol>
+    <symbol id="cube" viewBox="0 0 24 24"><path d="m12 2 8 4.5v9L12 20l-8-4.5v-9z"/><path d="M4 6.5 12 11l8-4.5"/><path d="M12 11v9"/></symbol>
+    <symbol id="search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></symbol>
+    <symbol id="user" viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></symbol>
+    <symbol id="eye" viewBox="0 0 24 24"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/></symbol>
+    <symbol id="arrow-right" viewBox="0 0 24 24"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></symbol>
+  </svg>
+
+  <div class="shot">
+    <nav class="site-nav">
+      <div class="brand">
+        <div class="brand-symbol"><img src="品牌素材/lingma-forge-logo.png" alt="灵码工坊 Logo"></div>
+        <div class="brand-text">灵码工坊</div>
+      </div>
+      <div class="menu">
+        <a class="active" href="lingma-homepage.html">首页</a>
+        <a href="lingma-creative.html">创意中心</a>
+        <a href="lingma-workbench.html">工作台</a>
+        <a href="lingma-subscription.html">订阅</a>
+        <a href="lingma-pricing.html">价格</a>
+        <a href="lingma-doc.html">文档</a>
+      </div>
+      <div class="nav-actions">
+        <span class="sun"><svg class="icon"><use href="#sun"/></svg></span>
+        <button class="btn" onclick="location.href='lingma-auth.html'">登录</button>
+        <button class="btn primary" onclick="location.href='lingma-auth.html#register'">免费开始</button>
+        <a href="lingma-profile.html" class="nav-avatar" title="个人中心">
+          <img src="品牌素材/首页素材/lingma-forge-mascot-v2.png" alt="User Avatar">
+        </a>
+      </div>
+    </nav>
+
+    <section class="hero">
+      <div class="orbital"></div>
+      <div class="hero-inner">
+        <div class="hero-aura"></div>
+        <div class="hero-ring"></div>
+        <div class="hero-copy">
+          <span class="pill"><svg class="icon" style="width:15px;height:15px;color:#00aee9"><use href="#spark"/></svg> 企业级 AI 应用生成平台</span>
+          <h1>灵感<span class="gradient-word">一触</span>即发</h1>
+          <p class="subtitle">对话生成应用，预览、改代码、部署一气呵成</p>
+          <label class="prompt">
+            <svg class="icon" style="color:#667789"><use href="#message"/></svg>
+            <input placeholder="描述你想创建的应用，例如：做一个会员订阅页..." />
+            <svg class="icon" style="color:#8aa0b3"><use href="#spark"/></svg>
+          </label>
+          <div class="hero-buttons">
+            <button class="btn primary"><svg class="icon"><use href="#spark"/></svg> 立即生成</button>
+            <button class="btn"><svg class="icon"><use href="#play"/></svg> 查看案例</button>
+          </div>
+          <div class="metrics">
+            <div class="metric-card"><div class="metric-icon"><svg class="icon" style="width:36px;height:36px;stroke-width:1.8"><use href="#zap"/></svg></div><div><strong>10x</strong><span>开发效率</span></div></div>
+            <div class="metric-card"><div class="metric-icon"><svg class="icon" style="width:34px;height:34px"><use href="#shield"/></svg></div><div><strong>99.9%</strong><span>项目可用率</span></div></div>
+            <div class="metric-card"><div class="metric-icon"><svg class="icon" style="width:35px;height:35px"><use href="#cube"/></svg></div><div><strong>50万+</strong><span>创意组件</span></div></div>
+          </div>
+        </div>
+
+        <div class="code-float">
+          <pre><code id="code-text"></code><span class="code-cursor">|</span></pre>
+        </div>
+        <div class="progress-float">
+          <strong><span id="progress-status">AI 生成中...</span> <span id="progress-percent" style="float:right;font-weight:500">0%</span></strong>
+          <div class="bar"><i id="progress-bar-inner"></i></div>
+        </div>
+        <img class="mascot" src="品牌素材/首页素材/lingma-forge-mascot-v2.png" alt="灵码工坊吉祥物">
+      </div>
+    </section>
+
+    <section class="workshop">
+      <div class="content">
+        <div class="section-head">
+          <div class="section-title">
+            <h2>创意工坊 <span class="slash"></span></h2>
+            <div class="tabs">
+              <button class="active">精选推荐</button>
+              <button>网站应用</button>
+              <button>管理系统</button>
+              <button>小程序</button>
+              <button>数据应用</button>
+              <button>全部模板 〉</button>
+            </div>
+          </div>
+          <div class="filters">
+            <label class="search"><svg class="icon"><use href="#search"/></svg><input placeholder="搜索模板、组件或功能..." /></label>
+            <button class="select">最新 <svg class="icon" style="width:14px;height:14px"><use href="#chevron-right"/></svg></button>
+          </div>
+        </div>
+
+        <div class="cards">
+          <article class="app-card">
+            <div class="thumb graph">
+              <div class="thumb-title"><strong>SaaS 官网</strong><span>现代极简风格的产品官网</span></div>
+              <div class="mock-window"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-title">SaaS 官网 <span class="time">2分钟前</span></div>
+              <div class="card-desc">现代极简风格的产品官网</div>
+              <div class="chips"><span class="chip">SaaS</span><span class="chip">官网</span><span class="chip">响应式</span></div>
+              <div class="card-foot"><span class="creator"><img class="avatar" src="品牌素材/首页素材/lingma-forge-mascot-v2.png" alt="">WebCraft <span class="verified">✓</span></span><span class="success">✓ 部署成功</span><span><svg class="icon" style="width:14px;height:14px"><use href="#eye"/></svg> 1.2k 订阅</span></div>
+            </div>
+          </article>
+
+          <article class="app-card">
+            <div class="thumb light">
+              <div class="price-ui">
+                <div class="price-card"><small>基础版</small><br><strong>¥19</strong><br><small>/月</small></div>
+                <div class="price-card"><small>专业版</small><br><strong>¥49</strong><br><small>/月</small></div>
+                <div class="price-card"><small>尊享版</small><br><strong>¥99</strong><br><small>/月</small></div>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="card-title">订阅商城 <span class="time">7分钟前</span></div>
+              <div class="card-desc">会员订阅与支付系统模板</div>
+              <div class="chips"><span class="chip">订阅</span><span class="chip">支付</span><span class="chip">电商</span></div>
+              <div class="card-foot"><span class="creator"><img class="avatar" src="品牌素材/首页素材/lingma-forge-mascot-v2.png" alt="">设计喵 <span class="verified">✓</span></span><span class="success">✓ 部署成功</span><span>892 订阅</span></div>
+            </div>
+          </article>
+
+          <article class="app-card">
+            <div class="thumb graph">
+              <div class="thumb-title"><strong>12,842</strong><span>数据增长率 32.6%</span></div>
+              <div class="chart">
+                <span class="bar-col" style="height:32%"></span><span class="bar-col" style="height:44%"></span><span class="bar-col" style="height:38%"></span><span class="bar-col" style="height:52%"></span><span class="bar-col" style="height:62%"></span><span class="bar-col" style="height:76%"></span><span class="bar-col" style="height:88%"></span>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="card-title">数据看板 <span class="time">9分钟前</span></div>
+              <div class="card-desc">可视化数据分析仪表盘</div>
+              <div class="chips"><span class="chip">数据</span><span class="chip">可视化</span><span class="chip">看板</span></div>
+              <div class="card-foot"><span class="creator"><img class="avatar" src="品牌素材/首页素材/lingma-forge-mascot-v2.png" alt="">数据工匠 <span class="verified">✓</span></span><span class="success">✓ 部署成功</span><span>1.5k 订阅</span></div>
+            </div>
+          </article>
+
+          <article class="app-card">
+            <div class="thumb person">
+              <div class="thumb-title"><strong>Hello, I'm<br>Developer</strong><span>个人开发者作品展示</span></div>
+              <div class="person-img"></div>
+            </div>
+            <div class="card-body">
+              <div class="card-title">个人作品集 <span class="time">19分钟前</span></div>
+              <div class="card-desc">创意开发者作品展示模板</div>
+              <div class="chips"><span class="chip">作品集</span><span class="chip">简历</span><span class="chip">响应式</span></div>
+              <div class="card-foot"><span class="creator"><img class="avatar" src="品牌素材/首页素材/lingma-forge-mascot-v2.png" alt="">CodeArtisan <span class="verified">✓</span></span><span class="success">✓ 部署成功</span><span>734 订阅</span></div>
+            </div>
+          </article>
+          <button class="next-card"><svg class="icon" style="width:17px;height:17px"><use href="#chevron-right"/></svg></button>
+        </div>
+
+        <div class="activity">
+          <div class="activity-title"><span class="live-dot"></span>实时动态</div>
+          <div class="feed"><div class="feed-thumb"><img src="品牌素材/首页素材/lingma-forge-mascot-v2.png" alt=""></div><div><strong>用户 <span style="color:#00aab3">灵感玩家</span> 生成了会员订阅页</strong><small>2 分钟前　<span class="success">部署成功</span></small></div></div>
+          <div class="feed"><div class="feed-thumb"><img src="品牌素材/首页素材/lingma-forge-mascot-v2.png" alt=""></div><div><strong>用户 <span style="color:#00aab3">设计喵</span> 更新了模板</strong><small>5 分钟前　<span style="color:#1689ff">已发布</span></small></div></div>
+          <div class="feed"><div class="feed-thumb"><img src="品牌素材/首页素材/lingma-forge-mascot-v2.png" alt=""></div><div><strong>用户 <span style="color:#00aab3">WebCraft</span> 生成了 SaaS 官网模板</strong><small>8 分钟前　<span class="success">部署成功</span></small></div></div>
+          <div class="feed"><div class="feed-thumb" style="background:#102631"></div><div><strong>用户 <span style="color:#00aab3">数据工匠</span> 生成了销售数据看板</strong><small>12 分钟前　<span style="color:#ff9f1c">运行中</span></small></div></div>
+          <button class="btn">查看全部动态 <svg class="icon" style="width:16px;height:16px"><use href="#arrow-right"/></svg></button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    // 向下兼容：如果带有旧的创意中心 hash 锚点，则自动重定向
+    if (location.hash === '#creative') {
+      location.replace('lingma-creative.html');
+    }
+
+    const codeText = `import { Button } from '@/ui'
+
+export default function Home() {
+  return (
+    <div className="page">
+      <AIWorkshop />
+    </div>
+  )
+}`;
+
+    const codeEl = document.getElementById('code-text');
+    const progressTextEl = document.getElementById('progress-percent');
+    const progressStatusEl = document.getElementById('progress-status');
+    const progressBarInner = document.getElementById('progress-bar-inner');
+
+    let progress = 0;
+    let intervalId = null;
+
+    function startGenerationAnimation() {
+      progress = 0;
+      if (codeEl) codeEl.textContent = '';
+      if (progressBarInner) {
+        progressBarInner.style.width = '0%';
+        progressBarInner.style.background = ''; // reset to CSS default gradient
+      }
+      
+      if (intervalId) clearInterval(intervalId);
+      
+      intervalId = setInterval(() => {
+        progress += 1;
+        if (progress > 100) {
+          progress = 100;
+          clearInterval(intervalId);
+          
+          // 部署成功后停留 4 秒重新开始动画
+          setTimeout(startGenerationAnimation, 4000);
+        }
+        
+        // 更新进度百分比
+        if (progressTextEl) progressTextEl.textContent = `${progress}%`;
+        
+        // 更新进度条宽度
+        if (progressBarInner) {
+          progressBarInner.style.width = `${progress}%`;
+          if (progress === 100) {
+            // 成功后变为绿色/薄荷绿渐变
+            progressBarInner.style.background = 'linear-gradient(90deg, #14d9bd, #20ffa3)';
+          }
+        }
+        
+        // 根据进度阶段更新状态文本及代码打字机效果
+        if (progress <= 15) {
+          if (progressStatusEl) progressStatusEl.textContent = 'AI 正在分析需求...';
+        } else if (progress <= 75) {
+          if (progressStatusEl) progressStatusEl.textContent = 'AI 正在生成代码...';
+          const typingProgress = (progress - 15) / 60; // 0 to 1
+          const currentCharCount = Math.floor(typingProgress * codeText.length);
+          if (codeEl) {
+            codeEl.textContent = codeText.substring(0, currentCharCount);
+          }
+        } else if (progress <= 90) {
+          if (progressStatusEl) progressStatusEl.textContent = '正在编译构建应用...';
+          if (codeEl) codeEl.textContent = codeText;
+        } else if (progress < 100) {
+          if (progressStatusEl) progressStatusEl.textContent = '正在部署至云端...';
+        } else {
+          if (progressStatusEl) progressStatusEl.innerHTML = '<span style="color:#20ffa3;font-weight:700">✓ 部署成功!</span>';
+        }
+      }, 70); // 70ms * 100 = 7 seconds per cycle
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      startGenerationAnimation();
+    });
+  </script>
+</body>
+</html>
