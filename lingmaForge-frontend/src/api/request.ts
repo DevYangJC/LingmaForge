@@ -25,12 +25,18 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
 
   if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`)
 
-  const text = await response.text()
+  let text = await response.text()
   if (!text) return undefined as T
 
+  // 解决 JS 解析长整型大整数（如 Snowflake ID）精度丢失问题，将 16 位及以上的长整数转换为字符串
+  text = text.replace(/:\s*(-?\d{16,})/g, ':"$1"')
+
   const payload = JSON.parse(text)
-  if (typeof payload === 'object' && payload && 'code' in payload) {
-    if (payload.code === 0) return payload.data as T
+  console.log(`[Request Debug] Path: ${path}`, 'Payload:', payload)
+  if (typeof payload === 'object' && payload && ('code' in payload || 'success' in payload)) {
+    const isSuccess = payload.success === true || payload.code === 200 || payload.code === 0
+    console.log(`[Request Debug] Path: ${path}`, 'isSuccess:', isSuccess)
+    if (isSuccess) return payload.data as T
     throw new Error(payload.message || '请求失败')
   }
 

@@ -65,8 +65,8 @@ function focusTextarea() {
   textareaRef.value?.focus()
 }
 
-function submit() {
-  if (store.submit(promptText.value)) {
+async function submit() {
+  if (await store.submit(promptText.value)) {
     // 切换到生成模式由 store.mode 驱动；输入文本已存入 store.prompt
     promptText.value = ''
   } else {

@@ -12,8 +12,12 @@
  *   - 进入页面后的生成进度模拟（清单推进 + 日志揭示 + 状态翻转）
  * 首条用户消息绑定 store.prompt（来自简洁模式的输入），实现两模式的数据贯通。
  */
-import { onMounted, ref, nextTick } from 'vue'
+import { onMounted, ref, nextTick, computed, h } from 'vue'
 import { useRouter } from 'vue-router'
+import type { TreeOption } from 'naive-ui'
+import { NTree } from 'naive-ui'
+import { Splitpanes, Pane } from 'splitpanes'
+import 'splitpanes/dist/splitpanes.css'
 import { IMG } from '@/assets/images'
 import { useWorkbenchStore } from '@/stores/workbench'
 import TheHeader from '@/components/TheHeader.vue'
@@ -97,6 +101,49 @@ function stopGeneration() {
 /** 新建对话：回退到简洁模式，清空当前生成状态 */
 function newChat() {
   store.reset()
+}
+
+/* ---------- NTree 文件树 ---------- */
+const mockTreeData: TreeOption[] = [
+  { key: 'src', label: 'src', children: [
+    { key: 'src/pages', label: 'pages', children: [
+      { key: 'src/pages/Home.tsx', label: 'Home.tsx', isLeaf: true },
+      { key: 'src/pages/Subscribe.tsx', label: 'Subscribe.tsx', isLeaf: true },
+      { key: 'src/pages/Orders.tsx', label: 'Orders.tsx', isLeaf: true },
+    ]},
+    { key: 'src/components', label: 'components', children: [
+      { key: 'src/components/PricingCard.tsx', label: 'PricingCard.tsx', isLeaf: true },
+      { key: 'src/components/FeatureItem.tsx', label: 'FeatureItem.tsx', isLeaf: true },
+      { key: 'src/components/OrderTable.tsx', label: 'OrderTable.tsx', isLeaf: true },
+    ]},
+    { key: 'src/api', label: 'api', children: [
+      { key: 'src/api/orders.ts', label: 'orders.ts', isLeaf: true },
+      { key: 'src/api/payments.ts', label: 'payments.ts', isLeaf: true },
+    ]},
+    { key: 'src/assets', label: 'assets', children: [
+      { key: 'src/assets/mascot.png', label: 'mascot.png', isLeaf: true },
+    ]},
+  ]},
+  { key: 'styles.css', label: 'styles.css', isLeaf: true },
+  { key: 'package.json', label: 'package.json', isLeaf: true },
+]
+
+function renderTreePrefix({ option }: { option: TreeOption }) {
+  const iconName = option.isLeaf ? 'file-code' : 'folder-open'
+  const iconColor = option.isLeaf ? 'var(--blue)' : '#ffa726'
+  return h('svg', { class: 'icon', style: { width: '14px', height: '14px', color: iconColor, flexShrink: '0' } }, [
+    h('use', { href: `#${iconName}` }),
+  ])
+}
+
+function renderTreeSuffix({ option }: { option: TreeOption }) {
+  if (!option.isLeaf) return null
+  const name = String(option.label ?? option.key)
+  const ext = name.includes('.') ? name.slice(name.lastIndexOf('.')) : ''
+  const badgeMap: Record<string, string> = { '.tsx': 'TSX', '.ts': 'TS', '.css': 'CSS', '.json': 'JSON', '.vue': 'VUE', '.png': 'IMG' }
+  const badge = badgeMap[ext]
+  if (!badge) return null
+  return h('span', { class: ['tree-node-badge', badge.toLowerCase()], style: { fontSize: '9px', padding: '1px 3px', borderRadius: '3px', fontWeight: 600 } }, badge)
 }
 
 onMounted(() => {
@@ -193,8 +240,9 @@ onMounted(() => {
       </div>
 
       <!-- 主工作区 -->
-      <div class="workbench-main">
+      <Splitpanes class="workbench-main">
         <!-- Column 1: 我的项目 -->
+        <Pane :size="15" :min-size="10">
         <div class="workspace-panel column-projects">
           <div class="projects-header">
             <h3>我的项目</h3>
@@ -316,7 +364,10 @@ onMounted(() => {
           </div>
         </div>
 
+        </Pane>
+
         <!-- Column 2: AI 助手 -->
+        <Pane :size="20" :min-size="15">
         <div class="workspace-panel column-ai">
           <div class="ai-header">
             <div class="chat-avatar" style="width: 24px; height: 24px">
@@ -484,9 +535,10 @@ onMounted(() => {
           </div>
         </div>
 
-        <div class="resizer-v" id="resizer-ai"></div>
+        </Pane>
 
         <!-- Column 3: 文件 & 编辑器 -->
+        <Pane :size="35" :min-size="20">
         <div class="workspace-panel column-editor">
           <div class="editor-tabs">
             <div class="editor-tabs-left">
@@ -503,123 +555,19 @@ onMounted(() => {
             <span class="filter-pill" data-filter="api">3 API</span>
           </div>
           <div class="file-tree" id="file-tree-container">
-            <div class="tree-node folder-node">
-              <div class="tree-node-label">
-                <svg class="icon" style="color: #ffa726"><use href="#folder-open" /></svg>
-                <span>src</span>
-              </div>
-            </div>
-            <div class="tree-node folder-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span>
-                <svg class="icon" style="color: #ffa726"><use href="#folder-open" /></svg>
-                <span>pages</span>
-              </div>
-            </div>
-            <div class="tree-node file-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span><span class="tree-node-indent"></span>
-                <svg class="icon"><use href="#file-code" /></svg><span>Home.tsx</span>
-              </div>
-              <div><span class="tree-node-badge tsx">TSX</span></div>
-            </div>
-            <div class="tree-node file-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span><span class="tree-node-indent"></span>
-                <svg class="icon"><use href="#file-code" /></svg><span>Subscribe.tsx</span>
-              </div>
-              <div><span class="tree-node-badge tsx">TSX</span></div>
-            </div>
-            <div class="tree-node file-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span><span class="tree-node-indent"></span>
-                <svg class="icon"><use href="#file-code" /></svg><span>Orders.tsx</span>
-              </div>
-              <div><span class="tree-node-badge tsx">TSX</span></div>
-            </div>
-            <div class="tree-node folder-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span>
-                <svg class="icon" style="color: #ffa726"><use href="#folder-open" /></svg>
-                <span>components</span>
-              </div>
-            </div>
-            <div class="tree-node file-node active">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span><span class="tree-node-indent"></span>
-                <svg class="icon"><use href="#file-code" /></svg><span>PricingCard.tsx</span>
-              </div>
-              <div><span class="tree-node-badge tsx">TSX</span></div>
-            </div>
-            <div class="tree-node file-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span><span class="tree-node-indent"></span>
-                <svg class="icon"><use href="#file-code" /></svg><span>FeatureItem.tsx</span>
-              </div>
-              <div><span class="tree-node-badge tsx">TSX</span></div>
-            </div>
-            <div class="tree-node file-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span><span class="tree-node-indent"></span>
-                <svg class="icon"><use href="#file-code" /></svg><span>OrderTable.tsx</span>
-              </div>
-              <div><span class="tree-node-badge tsx">TSX</span></div>
-            </div>
-            <div class="tree-node folder-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span>
-                <svg class="icon" style="color: #ffa726"><use href="#folder-open" /></svg>
-                <span>api</span>
-              </div>
-            </div>
-            <div class="tree-node file-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span><span class="tree-node-indent"></span>
-                <svg class="icon"><use href="#file-code" /></svg><span>orders.ts</span>
-              </div>
-              <div><span class="tree-node-badge ts animate-pulse">TS</span></div>
-            </div>
-            <div class="tree-node file-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span><span class="tree-node-indent"></span>
-                <svg class="icon"><use href="#file-code" /></svg><span>payments.ts</span>
-              </div>
-              <div><span class="tree-node-badge ts">TS</span></div>
-            </div>
-            <div class="tree-node folder-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span>
-                <svg class="icon" style="color: #ffa726"><use href="#folder-open" /></svg>
-                <span>assets</span>
-              </div>
-            </div>
-            <div class="tree-node file-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span><span class="tree-node-indent"></span>
-                <svg class="icon" style="color: #81c784"><use href="#file-image" /></svg><span>mascot.png</span>
-              </div>
-              <div></div>
-            </div>
-            <div class="tree-node file-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span>
-                <svg class="icon"><use href="#file-code" /></svg><span>styles.css</span>
-              </div>
-              <div><span class="tree-node-badge css">CSS</span></div>
-            </div>
-            <div class="tree-node file-node">
-              <div class="tree-node-label">
-                <span class="tree-node-indent"></span>
-                <svg class="icon"><use href="#file-code" /></svg><span>package.json</span>
-              </div>
-              <div><span class="tree-node-badge json">JSON</span></div>
-            </div>
+            <NTree
+              :data="mockTreeData"
+              default-expand-all
+              :render-prefix="renderTreePrefix"
+              :render-suffix="renderTreeSuffix"
+              block-line
+            />
           </div>
         </div>
-
-        <div class="resizer-v" id="resizer-preview"></div>
+        </Pane>
 
         <!-- Column 4: 实时预览 & 代码预览 -->
+        <Pane :size="30" :min-size="18">
         <div class="workspace-panel column-preview">
           <div class="preview-header">
             <div class="preview-tabs">
@@ -852,9 +800,8 @@ onMounted(() => {
             </div>
           </div>
         </div>
-      </div>
-
-      <div class="resizer-h" id="resizer-bottom"></div>
+        </Pane>
+      </Splitpanes>
 
       <!-- 底部诊断 -->
       <div class="workbench-bottom">

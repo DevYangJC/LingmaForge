@@ -1,14 +1,32 @@
 import { request } from './request'
 import type { FileNode } from '@/core/generationCore.mjs'
 
+export interface ProjectResponse {
+  id: number | string
+  name: string
+  description?: string
+  framework: string
+  status: 'draft' | 'generating' | 'ready' | 'error'
+  lastBuildStatus: 'PENDING' | 'SUCCESS' | 'FAILED'
+  sandboxUrl?: string
+  createdAt: string
+  updatedAt: string
+}
+
 export const projectApi = {
-  getFileTree(projectId: string) {
-    return request<FileNode[]>(`/project/${projectId}/tree`)
+  list() {
+    return request<ProjectResponse[]>('/projects')
   },
-  getFileContent(projectId: string, path: string) {
-    return request<string>(`/project/${projectId}/file`, { query: { path } })
+  create(data: { name: string; description?: string; framework: string }) {
+    return request<ProjectResponse>('/projects', { method: 'POST', body: data })
   },
-  saveFile(projectId: string, path: string, content: string) {
-    return request<void>(`/project/${projectId}/file`, { method: 'PUT', body: { path, content } })
+  getFileTree(projectId: string | number) {
+    return request<FileNode[]>(`/projects/${projectId}/tree`)
+  },
+  getFileContent(projectId: string | number, path: string) {
+    return request<string>(`/projects/${projectId}/file`, { query: { path } })
+  },
+  saveFile(projectId: string | number, path: string, content: string) {
+    return request<void>(`/projects/${projectId}/file`, { method: 'PUT', body: { path, content } })
   },
 }
