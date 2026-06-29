@@ -1,11 +1,14 @@
 # =============================================================================
 # 灵码工坊 (LingmaForge) 后端配置入口
 # =============================================================================
-# 本文件仅做两件事：
-#   1. 指定默认 profile 为 dev
-#   2. 所有实际配置在 application-dev.yml 中定义
+# 加载链：
+#   application.yml (本文件) → active: local
+#     → application-dev.yml (完整配置，显式导入)
+#     → application-local.yml (本地密钥，由 application-dev.yml 通过 spring.config.import 导入)
 # =============================================================================
 
 spring:
   profiles:
     active: local
+  config:
+    import: application-dev.yml

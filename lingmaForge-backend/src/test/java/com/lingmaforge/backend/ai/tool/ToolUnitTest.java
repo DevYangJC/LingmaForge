@@ -12,10 +12,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import com.lingmaforge.backend.ai.observer.GenerationContext;
-import com.lingmaforge.backend.ai.observer.GenerationStreamEmitter;
-import com.lingmaforge.backend.model.Patch;
-import com.lingmaforge.backend.service.ProjectFileService;
+import com.lingmaforge.backend.workbench.ai.observer.GenerationContext;
+import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter;
+import com.lingmaforge.backend.common.model.Patch;
+import com.lingmaforge.backend.workbench.ai.tool.FileTools;
+import com.lingmaforge.backend.workbench.ai.tool.IterationTools;
+import com.lingmaforge.backend.workbench.ai.tool.ProjectContextTools;
+import com.lingmaforge.backend.workbench.service.ProjectFileService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

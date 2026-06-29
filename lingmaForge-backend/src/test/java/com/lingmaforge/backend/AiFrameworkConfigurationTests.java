@@ -4,7 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
-import com.lingmaforge.backend.ai.pipeline.CodeGenPipeline;
+import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenPipeline;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

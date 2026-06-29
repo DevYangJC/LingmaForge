@@ -4,7 +4,7 @@ import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
-@MapperScan("com.lingmaforge.backend.mapper")
+@MapperScan("com.lingmaforge.backend.workbench.mapper")
 @SpringBootApplication
 /**
  * 灵码工坊后端的 Spring Boot 启动入口。

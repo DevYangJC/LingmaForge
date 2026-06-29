@@ -5,9 +5,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.HashMap;
 import java.util.Map;
 
-import com.lingmaforge.backend.ai.node.*;
-import com.lingmaforge.backend.ai.observer.GenerationStreamRegistry;
-import com.lingmaforge.backend.model.BuildStatus;
+import com.lingmaforge.backend.workbench.ai.node.*;
+import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamRegistry;
+import com.lingmaforge.backend.common.model.BuildStatus;
+import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenPipeline;
+import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;

@@ -2,12 +2,13 @@ package com.lingmaforge.backend.ai.service;
 
 import java.util.UUID;
 
-import com.lingmaforge.backend.ai.factory.AgentFactory;
-import com.lingmaforge.backend.ai.observer.GenerationContext;
-import com.lingmaforge.backend.ai.observer.GenerationStreamEmitter;
-import com.lingmaforge.backend.model.CreateProjectRequest;
-import com.lingmaforge.backend.service.ProjectFileService;
-import com.lingmaforge.backend.service.ProjectService;
+import com.lingmaforge.backend.workbench.ai.factory.AgentFactory;
+import com.lingmaforge.backend.workbench.ai.observer.GenerationContext;
+import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter;
+import com.lingmaforge.backend.common.model.CreateProjectRequest;
+import com.lingmaforge.backend.workbench.ai.service.CodeGenAgent;
+import com.lingmaforge.backend.workbench.service.ProjectFileService;
+import com.lingmaforge.backend.workbench.service.ProjectService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;

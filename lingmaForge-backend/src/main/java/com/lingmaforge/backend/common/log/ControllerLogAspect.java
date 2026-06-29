@@ -51,7 +51,7 @@ public class ControllerLogAspect {
      */
     @Pointcut("within(@org.springframework.web.bind.annotation.RestController *)"
             + " && !within(org.springdoc..*)"
-            + " && !within(com.lingmaforge.backend.web.HealthController)")
+            + " && !within(com.lingmaforge.backend.infra.health.HealthController)")
     public void controllerMethods() {
     }
 

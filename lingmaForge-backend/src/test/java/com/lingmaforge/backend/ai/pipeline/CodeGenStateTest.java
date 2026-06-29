@@ -7,10 +7,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import com.lingmaforge.backend.model.BuildStatus;
-import com.lingmaforge.backend.model.GeneratedFile;
-import com.lingmaforge.backend.model.PlanResult;
-import com.lingmaforge.backend.model.RequirementSpec;
+import com.lingmaforge.backend.common.model.BuildStatus;
+import com.lingmaforge.backend.common.model.GeneratedFile;
+import com.lingmaforge.backend.common.model.PlanResult;
+import com.lingmaforge.backend.common.model.RequirementSpec;
+import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenState;
 import org.bsc.langgraph4j.state.AgentState;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
