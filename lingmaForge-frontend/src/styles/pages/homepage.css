@@ -1,6 +1,5 @@
 .hero {
   position: relative;
-  z-index: 40;
   min-height: 560px;
   padding: 26px 0 20px;
   border-bottom: 1px solid rgba(211, 224, 234, .8);

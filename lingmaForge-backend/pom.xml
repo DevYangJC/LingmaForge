@@ -27,6 +27,15 @@
 
     <dependencyManagement>
         <dependencies>
+            <!-- LangChain4j BOM：统一管理 langchain4j / langchain4j-open-ai / langchain4j-anthropic 等模块版本 -->
+            <dependency>
+                <groupId>dev.langchain4j</groupId>
+                <artifactId>langchain4j-bom</artifactId>
+                <version>${langchain4j.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <!-- LangGraph4j BOM：统一管理 langgraph4j-core / langgraph4j-langchain4j 等模块版本 -->
             <dependency>
                 <groupId>org.bsc.langgraph4j</groupId>
                 <artifactId>langgraph4j-bom</artifactId>
@@ -46,15 +55,20 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
+        <!-- LangChain4j 核心库：ChatModel 接口、AiServices、@Tool 注解 -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j</artifactId>
-            <version>${langchain4j.version}</version>
         </dependency>
+        <!-- OpenAI 兼容协议适配器：DeepSeek / 通义千问 / GPT-4 统一接入 -->
         <dependency>
             <groupId>dev.langchain4j</groupId>
             <artifactId>langchain4j-open-ai</artifactId>
-            <version>${langchain4j.version}</version>
+        </dependency>
+        <!-- Anthropic 原生协议适配器：Claude Sonnet 4 代码生成专用 -->
+        <dependency>
+            <groupId>dev.langchain4j</groupId>
+            <artifactId>langchain4j-anthropic</artifactId>
         </dependency>
         <dependency>
             <groupId>org.bsc.langgraph4j</groupId>

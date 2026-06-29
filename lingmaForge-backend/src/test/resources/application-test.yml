@@ -1,0 +1,7 @@
+# 集成测试专用配置
+# 测试时关闭构建，避免依赖 Node.js 环境
+lingma:
+  sandbox:
+    build-enabled: false
+  # 测试环境可能没有 API Key，让 AgentFactory 自动降级到 NoOpModel
+  # 集成测试通过 @EnabledIfEnvironmentVariable 开关，不会误触

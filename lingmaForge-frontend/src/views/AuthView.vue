@@ -7,18 +7,12 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { IMG } from '@/assets/images'
+import TheHeader from '@/components/TheHeader.vue'
 import '@/styles/pages/auth.css'
 
 const router = useRouter()
 const mainTab = ref<'login' | 'register'>('login')
 const methodTab = ref<'code' | 'password'>('code')
-
-function goHome() {
-  router.push('/')
-}
-function goDoc() {
-  router.push('/doc')
-}
 </script>
 
 <template>
@@ -34,17 +28,7 @@ function goDoc() {
     </div>
 
     <!-- Header -->
-    <header class="auth-header">
-      <div class="brand" style="cursor: pointer" @click="goHome">
-        <div class="brand-symbol"><img :src="IMG.brand.logo" alt="灵码工坊 Logo" /></div>
-        <div class="brand-text">灵码工坊</div>
-      </div>
-      <div class="header-menu">
-        <a href="#" class="header-link" @click.prevent="goHome">返回首页</a>
-        <span class="header-sep">|</span>
-        <a href="#" class="header-link" @click.prevent="goDoc">帮助中心</a>
-      </div>
-    </header>
+    <TheHeader variant="minimal" />
 
     <main class="auth-main">
       <!-- 左侧展示 -->

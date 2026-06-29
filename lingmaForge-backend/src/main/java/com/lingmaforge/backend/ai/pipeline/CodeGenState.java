@@ -1,5 +1,6 @@
 package com.lingmaforge.backend.ai.pipeline;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -71,7 +72,7 @@ public class CodeGenState extends AgentState {
                 Map.entry(PLAN_RESULT, Channels.base(() -> null)),
                 Map.entry(CURRENT_FILE_INDEX, Channels.base(() -> 0)),
                 // 已生成文件：追加合并，每轮代码生成追加一个文件
-                Map.entry(GENERATED_FILES, Channels.appender(List::of)),
+                Map.entry(GENERATED_FILES, Channels.appender(ArrayList::new)),
                 Map.entry(BUILD_STATUS, Channels.base(() -> BuildStatus.PENDING)),
                 Map.entry(BUILD_ERROR, Channels.base(() -> null)),
                 Map.entry(BUILD_TIME, Channels.base(() -> 0)),

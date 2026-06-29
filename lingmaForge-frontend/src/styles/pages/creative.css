@@ -49,7 +49,6 @@
 .creative-center-view {
   display: block;
   position: relative;
-  z-index: 60;
   padding: 24px 0 60px;
   min-height: calc(100vh - 76px);
   /* 多点环境径向微光渐变，烘托科技感质感 */

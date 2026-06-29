@@ -1,53 +1,170 @@
+# =============================================================================
+# 灵码工坊 (LingmaForge) 后端核心配置
+# =============================================================================
+# 四个配置块：
+#   1. Spring Boot 基础（端口、H2 数据库、MyBatis-Plus）
+#   2. lingma.models    —— 国内大模型连接信息
+#   3. lingma.agents    —— 每个 Agent 用哪个模型
+#   4. lingma.sandbox   —— 构建开关与预览参数
+#
+# 改模型：只改 yml 一行 model: xxx，不改 Java 代码。
+# =============================================================================
+
 server:
   port: 8081
 
 spring:
   application:
     name: lingmaForge-backend
+
+  # ---- 数据库：默认 H2 内嵌文件模式，开箱即跑 ----
   datasource:
     driver-class-name: org.h2.Driver
     url: jdbc:h2:file:./data/lingmaforge;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
     username: sa
     password:
+
   h2:
     console:
       enabled: true
       path: /h2-console
+
   sql:
     init:
       mode: always
 
+# ---- MyBatis-Plus ----
 mybatis-plus:
-  mapper-locations: classpath*:/mapper/**/*.xml
   configuration:
     map-underscore-to-camel-case: true
   global-config:
     db-config:
       id-type: assign_id
 
+# =============================================================================
+# 灵码工坊自定义配置
+# =============================================================================
 lingma:
-  # 项目工作区根目录（生成的项目源码落盘位置，后续挂载到沙箱容器）
+
+  # 项目源码落盘根目录（后续可挂载到 Docker 容器）
   workspace-root: ${LINGMA_WORKSPACE_ROOT:./workspace}
-  ai:
-    # OpenAI 兼容协议接入，默认 DashScope 兼容模式
-    api-key: ${AI_DASHSCOPE_API_KEY:demo-key}
-    base-url: ${AI_OPENAI_COMPATIBLE_BASE_URL:https://dashscope.aliyuncs.com/compatible-mode/v1}
-    model-name: ${AI_CHAT_MODEL:qwen-plus}
-    log-requests: false
-    log-responses: false
-    max-retries: 2
-  pipeline:
-    # 代码生成流水线模型路由（当前复用单一 ChatModel Bean，多模型可在 LangChain4jConfig 扩展）
-    analysis-model: deepseek-v3
-    code-gen-model: qwen-plus
-    style-model: deepseek-v3
-    # 构建失败后回退到代码生成的最大重试次数
-    max-retry-count: 2
+
+  # ===========================================================================
+  # 国内大模型连接配置（lingma.models）
+  # ===========================================================================
+  # 每个模型独立配置 api-key / base-url / model-name / provider。
+  # key（如 deepseek-flash、qwen-coder）是模型别名，供 lingma.agents 引用。
+  #
+  # provider 支持:
+  #   openai    → OpenAI 兼容协议（DeepSeek / 通义千问 / Moonshot 全部走这个）
+  #   anthropic → Anthropic 原生协议（国内基本用不到，保留占位）
+  #
+  # api-key 从环境变量读取；未设置则该模型自动跳过，Agent 回退到其他可用模型。
+  # ===========================================================================
+  models:
+
+    # ---- DeepSeek V4 Flash（最便宜，轻量任务主力） ----
+    # 价格: ¥0.001 / 1K input tokens  |  上下文: 1M
+    # 适用: 需求分析、执行规划、样式优化
+    # 官网: https://platform.deepseek.com
+    deepseek-flash:
+      base-url: https://api.deepseek.com/v1
+      api-key: ${DEEPSEEK_API_KEY}
+      model-name: deepseek-v4-flash
+      provider: openai
+      log-requests: true
+      log-responses: true
+      max-retries: 2
+
+    # ---- DeepSeek V4 Pro（强推理，代码生成主力） ----
+    # 价格: ¥0.003 / 1K input tokens  |  上下文: 1M
+    # 适用: 代码生成、迭代修改
+    deepseek-pro:
+      base-url: https://api.deepseek.com/v1
+      api-key: sk-cf6ce5a88c754024b370b31defe89a20
+      model-name: deepseek-v4-pro
+      provider: openai
+      log-requests: true
+      log-responses: true
+      max-retries: 2
+
+    # ---- 通义千问 Qwen3-Coder-Plus（代码专用备份） ----
+    # 价格: ~¥0.0035 / 1K input tokens  |  上下文: 128K
+    # 适用: 代码生成（当 DeepSeek 不可用时回退）
+    # 官网: https://dashscope.aliyun.com
+    qwen-coder:
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api-key: ${DASHSCOPE_API_KEY}
+      model-name: qwen3-coder-plus
+      provider: openai
+      log-requests: false
+      log-responses: false
+      max-retries: 2
+
+    # ---- 通义千问 Qwen-Plus（通用备份） ----
+    # 价格: ~¥0.002 / 1K input tokens  |  上下文: 128K
+    # 适用: 需求分析、执行规划（DeepSeek 不可用时的回退）
+    qwen-plus:
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api-key: ${DASHSCOPE_API_KEY}
+      model-name: qwen-plus
+      provider: openai
+      log-requests: false
+      log-responses: false
+      max-retries: 2
+
+    # ---- Moonshot Kimi K2.7 Code（编程特化，可选升级） ----
+    # 价格: ¥0.007 / 1K input, ¥0.028 / 1K output  |  上下文: 128K
+    # 适用: 复杂代码生成（追求极致代码质量时升级到它）
+    # 官网: https://platform.moonshot.cn
+    kimi-code:
+      base-url: https://api.moonshot.cn/v1
+      api-key: ${MOONSHOT_API_KEY}
+      model-name: kimi-k2.7-code
+      provider: openai
+      log-requests: false
+      log-responses: false
+      max-retries: 2
+
+  # ===========================================================================
+  # Agent → 模型 路由分配（lingma.agents）
+  # ===========================================================================
+  # 每个 Agent 的 model 字段引用 lingma.models 中的模型别名。
+  #
+  # 成本控制策略:
+  #   需求分析、执行规划、样式优化 → deepseek-flash（¥0.001/K tokens，最便宜）
+  #   代码生成、迭代修改          → deepseek-pro （¥0.003/K tokens，强推理）
+  #
+  # 换模型示例: 把 code-generation.model 从 deepseek-pro 改成 kimi-code 或 qwen-coder
+  # ===========================================================================
+  agents:
+    requirement-analysis:
+      model: deepseek-flash
+    execution-planning:
+      model: deepseek-flash
+    code-generation:
+      model: deepseek-pro
+    style-optimization:
+      model: deepseek-flash
+    iteration-modification:
+      model: deepseek-pro
+
+  # ===========================================================================
+  # 构建与沙箱配置（lingma.sandbox）
+  # ===========================================================================
   sandbox:
-    # 构建开关：关闭时跳过真实 npm build，流水线可端到端跑通；开启后在项目工作区执行真实构建
+    # 构建开关: false=跳过npm build（开发调试用） / true=真实构建（需Node.js）
     build-enabled: ${LINGMA_BUILD_ENABLED:false}
+    # npm/node 可执行文件路径（build-enabled=true 时生效）
     node-binary: ${LINGMA_NODE_BINARY:node}
     npm-binary: ${LINGMA_NPM_BINARY:npm}
+    # 构建超时（秒），超时强制终止
     build-timeout-seconds: 180
+    # 预览地址模板
     base-preview-host: ${LINGMA_PREVIEW_HOST:sandbox.lingmaforge.local}
     preview-port: 5173
+
+  # 流水线参数
+  pipeline:
+    # 构建失败后最多回退到代码生成重试几次（超过进入 error_end 终止）
+    max-retry-count: 2

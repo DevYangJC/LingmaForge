@@ -191,9 +191,9 @@ public class GenerationService {
             inputs.put(CodeGenState.PROJECT_ID, String.valueOf(projectId));
             inputs.put(CodeGenState.TASK_ID, taskId);
 
-            NodeOutput<com.lingmaforge.backend.ai.pipeline.CodeGenState> last = null;
+            NodeOutput<CodeGenState> last = null;
             taskService.updateStage(taskId, "requirement_analysis");
-            for (NodeOutput<com.lingmaforge.backend.ai.pipeline.CodeGenState> output :
+            for (NodeOutput<CodeGenState> output :
                     pipeline.getCompiledGraph().stream(inputs)) {
                 if (context.stopped) {
                     break;

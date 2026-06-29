@@ -12,13 +12,13 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { IMG } from '@/assets/images'
 import { useWorkbenchStore } from '@/stores/workbench'
+import TheHeader from '@/components/TheHeader.vue'
 import '@/styles/pages/workbench-standalone.css'
 
 const router = useRouter()
 const store = useWorkbenchStore()
 
 const promptText = ref('')
-const profileOpen = ref(false)
 
 const templates = [
   {
@@ -81,13 +81,7 @@ function onTextareaKeydown(e: KeyboardEvent) {
   }
 }
 
-function toggleProfile(e: Event) {
-  e.stopPropagation()
-  profileOpen.value = !profileOpen.value
-}
-function closeProfile() {
-  profileOpen.value = false
-}
+
 
 function optimizePrompt() {
   const val = promptText.value.trim()
@@ -109,7 +103,7 @@ function onImport() {
 </script>
 
 <template>
-  <div class="lws-page-root" @click="closeProfile">
+  <div class="lws-page-root">
     <!-- 色键（绿幕抠像）SVG 滤镜：吉祥物去绿底，原样保留。
          放在单根 div 内，保证 <Transition> 可正常对根节点做过渡动画。 -->
     <svg width="0" height="0" style="position: absolute; pointer-events: none">
@@ -127,56 +121,7 @@ function onImport() {
     </svg>
     <div class="lws-shot">
       <!-- 顶部导航 -->
-      <header class="lws-nav">
-        <div class="lws-brand" @click="router.push('/')">
-          <div class="lws-brand-symbol">
-            <img :src="IMG.brand.logo" alt="灵码工坊 Logo" />
-          </div>
-          <div class="lws-brand-text">灵码工坊</div>
-        </div>
-
-        <nav class="lws-menu">
-          <router-link to="/">首页</router-link>
-          <router-link to="/creative">创意中心</router-link>
-          <router-link to="/workbench" class="lws-active">工作台</router-link>
-          <router-link to="/subscription">订阅</router-link>
-          <router-link to="/pricing">价格</router-link>
-          <router-link to="/doc">文档</router-link>
-        </nav>
-
-        <div class="lws-nav-actions">
-          <span class="lws-sun">
-            <svg viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="4" />
-              <path
-                d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
-              />
-            </svg>
-          </span>
-
-          <div class="lws-profile-dropdown" @click="toggleProfile">
-            <div class="lws-profile-avatar-box">
-              <img class="lws-profile-avatar-img" :src="IMG.brand.mascotHero" alt="Avatar" />
-            </div>
-            <span class="lws-profile-name">灵码玩家</span>
-            <svg class="lws-profile-arrow-icon" viewBox="0 0 24 24">
-              <path d="m6 9 6 6 6-6" />
-            </svg>
-
-            <div class="lws-dropdown-menu-list" :class="{ 'lws-active': profileOpen }">
-              <router-link to="/profile" class="lws-dropdown-item-link">个人中心</router-link>
-              <router-link to="/works" class="lws-dropdown-item-link">我的作品</router-link>
-              <router-link to="/subscription" class="lws-dropdown-item-link">订阅详情</router-link>
-              <router-link
-                to="/auth"
-                class="lws-dropdown-item-link"
-                style="color: #ff5f57"
-                >退出登录</router-link
-              >
-            </div>
-          </div>
-        </div>
-      </header>
+      <TheHeader variant="workbench" />
 
       <!-- 主体 -->
       <main class="lws-layout">

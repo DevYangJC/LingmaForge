@@ -16,6 +16,7 @@ import { onMounted, ref, nextTick } from 'vue'
 import { useRouter } from 'vue-router'
 import { IMG } from '@/assets/images'
 import { useWorkbenchStore } from '@/stores/workbench'
+import TheHeader from '@/components/TheHeader.vue'
 import '@/styles/pages/workbench.css'
 
 const router = useRouter()
@@ -130,28 +131,7 @@ onMounted(() => {
 <template>
   <div class="shot">
     <!-- 顶部导航 -->
-    <nav class="site-nav">
-      <div class="brand" @click="router.push('/')" style="cursor: pointer">
-        <div class="brand-symbol"><img :src="IMG.brand.logo" alt="灵码工坊 Logo" /></div>
-        <div class="brand-text">灵码工坊</div>
-      </div>
-      <div class="menu">
-        <router-link to="/">首页</router-link>
-        <router-link to="/creative">创意中心</router-link>
-        <router-link to="/workbench" class="active">工作台</router-link>
-        <router-link to="/subscription">订阅</router-link>
-        <router-link to="/pricing">价格</router-link>
-        <router-link to="/doc">文档</router-link>
-      </div>
-      <div class="nav-actions">
-        <span class="sun"><svg class="icon"><use href="#sun" /></svg></span>
-        <button class="btn" @click="router.push('/auth')">登录</button>
-        <button class="btn primary" @click="router.push('/auth#register')">免费开始</button>
-        <a href="#" class="nav-avatar" title="个人中心" @click.prevent="router.push('/profile')">
-          <img :src="IMG.brand.mascotHero" alt="User Avatar" />
-        </a>
-      </div>
-    </nav>
+    <TheHeader />
 
     <!-- 工作台 -->
     <div class="workbench-container">

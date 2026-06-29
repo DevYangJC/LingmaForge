@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.lingmaforge.backend.ai.observer.GenerationContext;
@@ -27,6 +29,8 @@ import dev.langchain4j.agent.tool.Tool;
  */
 @Component
 public class FileTools {
+
+    private static final Logger log = LoggerFactory.getLogger(FileTools.class);
 
     /** 匹配 ES6 / TS import 语句中的模块来源。 */
     private static final Pattern IMPORT_PATTERN =
@@ -51,6 +55,27 @@ public class FileTools {
     public String writeFile(
             @P("文件相对路径，例如 src/components/PlanCard.tsx") String path,
             @P("文件的完整内容") String content) {
+
+        // ★★★ 日志：让大家看到大模型传过来的 content 到底长什么样 ★★★
+        log.info("""
+                ╔══════════════════════════════════════════════════════════╗
+                ║  writeFile 被大模型调用！                                 ║
+                ╠══════════════════════════════════════════════════════════╣
+                ║  path  = {}
+                ╠══════════════════════════════════════════════════════════╣
+                ║  content 的前 3 行 →
+                ║  {}
+                ║  content 是否以 ``` 开头? → {}
+                ║  content 是否包含 "好的"? → {}
+                ║  content 总行数 → {}
+                ╚══════════════════════════════════════════════════════════╝
+                """,
+                path,
+                content.lines().limit(3).toList(),
+                content.trim().startsWith("```"),
+                content.contains("好的") || content.contains("以下是"),
+                content.lines().count());
+
         Long projectId = GenerationContext.get().projectId();
         int lines = projectFileService.writeFile(projectId, path, content, "new");
         GenerationContext.get().emitter().emitFile(path, content, "new");
