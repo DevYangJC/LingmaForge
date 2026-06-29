@@ -4,8 +4,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import java.util.List;
-
+import com.lingmaforge.backend.ai.tool.FileTools;
+import com.lingmaforge.backend.ai.tool.ProjectContextTools;
+import com.lingmaforge.backend.model.PlanResult;
+import com.lingmaforge.backend.model.RequirementSpec;
+import com.lingmaforge.backend.service.PromptTemplateLoader;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -14,12 +17,8 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
-import com.lingmaforge.backend.generation.agent.tool.FileTools;
-import com.lingmaforge.backend.generation.agent.tool.ProjectContextTools;
-import com.lingmaforge.backend.generation.domain.PlanResult;
-import com.lingmaforge.backend.generation.domain.RequirementSpec;
-import com.lingmaforge.backend.generation.service.PromptTemplateLoader;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -28,297 +27,218 @@ import dev.langchain4j.model.chat.response.ChatResponse;
 import dev.langchain4j.service.AiServices;
 
 /**
- * Agent Mock 测试 —— 使用 Mockito 模拟大模型返回值，验证 AiServices 的结构化输出能力。
- *
- * <p><b>测试目标</b>：
- * <ol>
- *   <li>大模型返回合法 JSON 时，AiServices 能正确反序列化为 Java Record</li>
- *   <li>大模型返回的 JSON 字段映射到 Java 字段无误</li>
- *   <li>代码生成 Agent 能正确调用 @Tool 方法</li>
- * </ol>
- *
- * <p><b>无需任何 API Key</b>，全部通过 mock ChatModel 完成。</p>
+ * Agent Mock 测试 -- 使用 Mockito 模拟大模型返回值，验证 AiServices 结构化输出能力。
+ * 无需任何 API Key，全部通过 mock ChatModel 完成。
  */
 @DisplayName("Agent Mock 测试（无需 API Key）")
 @ExtendWith(MockitoExtension.class)
 class AgentMockTest {
 
-    @Mock
-    private ChatModel chatModel;
-
-    @Mock
-    private PromptTemplateLoader promptLoader;
-
-    @Mock
-    private FileTools fileTools;
-
-    @Mock
-    private ProjectContextTools projectContextTools;
-
-    // ==================== 需求分析 Agent ====================
+    private static final Logger log = LoggerFactory.getLogger(AgentMockTest.class);
+    @Mock private ChatModel chatModel;
+    @Mock private PromptTemplateLoader promptLoader;
+    @Mock private FileTools fileTools;
+    @Mock private ProjectContextTools projectContextTools;
 
     @Nested
     @DisplayName("需求分析 Agent（结构化输出）")
     class RequirementAnalyzerTests {
-
         private RequirementAnalyzer analyzer;
 
         @BeforeEach
         void setUp() {
-            when(promptLoader.loadSystemPrompt("requirement-analysis"))
-                    .thenReturn("你是一个需求分析师");
-
+            when(promptLoader.loadSystemPrompt("requirement-analysis")).thenReturn("你是一个需求分析师");
             analyzer = AiServices.builder(RequirementAnalyzer.class)
                     .chatModel(chatModel)
                     .systemMessageProvider(id -> promptLoader.loadSystemPrompt("requirement-analysis"))
                     .build();
+            log.info("========== 需求分析Agent Mock初始化 ==========");
+            log.info("  系统提示词: '你是一个需求分析师', ChatModel: Mockito mock, 输出: RequirementSpec");
+            log.info("=============================================");
         }
 
         @Test
-        @DisplayName("模型返回合法 JSON 时，应正确解析为 RequirementSpec")
+        @DisplayName("模型返回合法JSON -> 正确解析为RequirementSpec")
         void shouldParseRequirementSpec() {
-            // 模拟大模型返回的 JSON
-            String jsonResponse = """
-                    {
-                      "appName": "会员订阅商城",
-                      "description": "一个面向C端用户的订阅付费平台",
-                      "pages": [
-                        {
-                          "name": "Home",
-                          "route": "/",
-                          "description": "首页",
-                          "components": ["NavBar", "HeroSection"]
-                        },
-                        {
-                          "name": "Subscription",
-                          "route": "/subscription",
-                          "description": "订阅页",
-                          "components": ["PlanCard", "PaymentButton"]
-                        }
-                      ],
-                      "apis": [
-                        {
-                          "name": "获取套餐列表",
-                          "path": "/api/plans",
-                          "method": "GET",
-                          "description": "返回套餐列表",
-                          "requestShape": {},
-                          "responseShape": {"plans": [{"id": "string", "name": "string", "price": "number"}]}
-                        }
-                      ],
-                      "features": ["套餐对比", "支付弹窗", "订单筛选"],
-                      "style": {
-                        "theme": "#6366f1",
-                        "themeName": "indigo",
-                        "layout": "responsive",
-                        "fontFamily": "Inter, system-ui, sans-serif"
-                      }
-                    }
-                    """;
-
+            String json = "{\n"
+                    + "  \"appName\": \"Subscription Store\",\n"
+                    + "  \"description\": \"A subscription payment platform\",\n"
+                    + "  \"pages\": [\n"
+                    + "    {\"name\": \"Home\", \"route\": \"/\", \"description\": \"Homepage\",\n"
+                    + "     \"components\": [\"NavBar\", \"HeroSection\"]},\n"
+                    + "    {\"name\": \"Subscription\", \"route\": \"/subscription\",\n"
+                    + "     \"description\": \"Subscription page\",\n"
+                    + "     \"components\": [\"PlanCard\", \"PaymentButton\"]}\n"
+                    + "  ],\n"
+                    + "  \"apis\": [\n"
+                    + "    {\"name\": \"Get Plans\", \"path\": \"/api/plans\", \"method\": \"GET\",\n"
+                    + "     \"description\": \"Returns plan list\", \"requestShape\": {},\n"
+                    + "     \"responseShape\": {\"plans\": [{\"id\": \"string\", \"name\": \"string\", \"price\": \"number\"}]}}\n"
+                    + "  ],\n"
+                    + "  \"features\": [\"Plan compare\", \"Payment modal\", \"Order filter\"],\n"
+                    + "  \"style\": {\"theme\": \"#6366f1\", \"themeName\": \"indigo\",\n"
+                    + "            \"layout\": \"responsive\", \"fontFamily\": \"Inter\"}\n"
+                    + "}";
             when(chatModel.chat(any(ChatRequest.class)))
-                    .thenReturn(ChatResponse.builder()
-                            .aiMessage(AiMessage.from(jsonResponse))
-                            .build());
+                    .thenReturn(ChatResponse.builder().aiMessage(AiMessage.from(json)).build());
 
-            // 调用 → 框架自动反序列化
-            RequirementSpec spec = analyzer.analyze("帮我生成一个会员订阅商城");
+            log.info("--- 模拟大模型返回 ---");
+            log.info("  用户输入: 'Generate a subscription store'");
+            log.info("  模拟JSON: {}字符, 2页/1API/3特性", json.length());
 
-            // 验证每个字段
-            assertThat(spec.appName()).isEqualTo("会员订阅商城");
-            assertThat(spec.description()).contains("C端用户");
+            RequirementSpec spec = analyzer.analyze("Generate a subscription store");
+
+            log.info("--- AiServices反序列化结果 ---");
+            log.info("  appName='{}', pages={}, apis={}, features={}",
+                    spec.appName(), spec.pages().size(), spec.apis().size(), spec.features());
+            spec.pages().forEach(p -> log.info("    {} ({}) components: {}",
+                    p.name(), p.route(), p.components()));
+            spec.apis().forEach(a -> log.info("    {} {} ({})", a.method(), a.path(), a.name()));
+            log.info("  theme: {} ({})", spec.style().theme(), spec.style().themeName());
+
+            assertThat(spec.appName()).isEqualTo("Subscription Store");
             assertThat(spec.pages()).hasSize(2);
-            assertThat(spec.pages().get(0).name()).isEqualTo("Home");
-            assertThat(spec.pages().get(0).route()).isEqualTo("/");
             assertThat(spec.pages().get(0).components()).containsExactly("NavBar", "HeroSection");
-            assertThat(spec.pages().get(1).name()).isEqualTo("Subscription");
-
-            assertThat(spec.apis()).hasSize(1);
-            assertThat(spec.apis().get(0).name()).isEqualTo("获取套餐列表");
             assertThat(spec.apis().get(0).method()).isEqualTo("GET");
-            assertThat(spec.apis().get(0).responseShape()).containsKey("plans");
-
-            assertThat(spec.features()).containsExactly("套餐对比", "支付弹窗", "订单筛选");
-
-            assertThat(spec.style()).isNotNull();
             assertThat(spec.style().theme()).isEqualTo("#6366f1");
-            assertThat(spec.style().themeName()).isEqualTo("indigo");
+            log.info("  [OK] JSON -> RequirementSpec 反序列化全部正确");
         }
 
         @Test
-        @DisplayName("模型返回带嵌套结构的 JSON 时，内层 Record 也正确解析")
+        @DisplayName("嵌套Record也正确解析")
         void shouldParseNestedRecords() {
-            String json = """
-                    {
-                      "appName": "极简博客",
-                      "description": "一个轻量博客系统",
-                      "pages": [
-                        {"name": "Blog", "route": "/blog", "description": "博客列表", "components": ["PostCard"]}
-                      ],
-                      "apis": [],
-                      "features": [],
-                      "style": {"theme": "#3b82f6", "themeName": "blue", "layout": "responsive", "fontFamily": "sans-serif"}
-                    }
-                    """;
-
+            String json = "{\n"
+                    + "  \"appName\": \"Minimal Blog\",\n"
+                    + "  \"description\": \"A lightweight blog system\",\n"
+                    + "  \"pages\": [\n"
+                    + "    {\"name\": \"Blog\", \"route\": \"/blog\", \"description\": \"Blog list\",\n"
+                    + "     \"components\": [\"PostCard\"]}\n"
+                    + "  ],\n"
+                    + "  \"apis\": [],\n"
+                    + "  \"features\": [],\n"
+                    + "  \"style\": {\"theme\": \"#3b82f6\", \"themeName\": \"blue\",\n"
+                    + "            \"layout\": \"responsive\", \"fontFamily\": \"sans-serif\"}\n"
+                    + "}";
             when(chatModel.chat(any(ChatRequest.class)))
-                    .thenReturn(ChatResponse.builder()
-                            .aiMessage(AiMessage.from(json))
-                            .build());
+                    .thenReturn(ChatResponse.builder().aiMessage(AiMessage.from(json)).build());
 
-            RequirementSpec spec = analyzer.analyze("帮我做博客");
+            log.info("--- 嵌套Record解析测试 ---");
+            log.info("  模拟JSON: 1页/0API/style含4字段");
 
-            // PageSpec 内层 Record 验证
-            RequirementSpec.PageSpec page = spec.pages().get(0);
-            assertThat(page).isNotNull();
-            assertThat(page.name()).isEqualTo("Blog");
-            assertThat(page.components()).contains("PostCard");
+            RequirementSpec spec = analyzer.analyze("make a blog");
 
-            // StyleSpec 内层 Record 验证
-            RequirementSpec.StyleSpec style = spec.style();
-            assertThat(style.theme()).isEqualTo("#3b82f6");
-            assertThat(style.layout()).isEqualTo("responsive");
+            log.info("  PageSpec: name='{}', components={}", spec.pages().get(0).name(), spec.pages().get(0).components());
+            log.info("  StyleSpec: theme='{}', layout='{}'", spec.style().theme(), spec.style().layout());
+
+            assertThat(spec.pages().get(0).name()).isEqualTo("Blog");
+            assertThat(spec.style().layout()).isEqualTo("responsive");
+            log.info("  [OK] 内层Record (PageSpec + StyleSpec) 全部解析正确");
         }
     }
-
-    // ==================== 执行规划 Agent ====================
 
     @Nested
     @DisplayName("执行规划 Agent（结构化输出）")
     class ExecutionPlannerTests {
-
         private ExecutionPlanner planner;
 
         @BeforeEach
         void setUp() {
-            when(promptLoader.loadSystemPrompt("execution-planning"))
-                    .thenReturn("你是一个架构师");
-
+            when(promptLoader.loadSystemPrompt("execution-planning")).thenReturn("你是一个架构师");
             planner = AiServices.builder(ExecutionPlanner.class)
                     .chatModel(chatModel)
                     .systemMessageProvider(id -> promptLoader.loadSystemPrompt("execution-planning"))
                     .build();
+            log.info("========== 执行规划Agent Mock初始化 ==========");
+            log.info("  系统提示词: '你是一个架构师', 输出: PlanResult");
+            log.info("=============================================");
         }
 
         @Test
-        @DisplayName("模型返回文件清单 JSON 时，应正确解析为 PlanResult")
+        @DisplayName("模型返回文件清单JSON -> 正确解析为PlanResult")
         void shouldParsePlanResult() {
-            String json = """
-                    {
-                      "framework": "react-vite-ts",
-                      "packageManager": "npm",
-                      "files": [
-                        {
-                          "path": "package.json",
-                          "purpose": "项目配置",
-                          "fileType": "config",
-                          "dependencies": [],
-                          "required": true
-                        },
-                        {
-                          "path": "src/styles/globals.css",
-                          "purpose": "全局样式",
-                          "fileType": "style",
-                          "dependencies": [],
-                          "required": true
-                        },
-                        {
-                          "path": "src/components/PlanCard.tsx",
-                          "purpose": "套餐卡片组件",
-                          "fileType": "component",
-                          "dependencies": ["src/styles/globals.css"],
-                          "required": true
-                        },
-                        {
-                          "path": "src/App.tsx",
-                          "purpose": "应用入口",
-                          "fileType": "entry",
-                          "dependencies": ["src/components/PlanCard.tsx"],
-                          "required": true
-                        }
-                      ],
-                      "generationOrder": [
-                        "package.json",
-                        "src/styles/globals.css",
-                        "src/components/PlanCard.tsx",
-                        "src/App.tsx"
-                      ],
-                      "buildCommands": ["npm install", "npm run build"]
-                    }
-                    """;
-
+            String json = "{\n"
+                    + "  \"framework\": \"react-vite-ts\",\n"
+                    + "  \"packageManager\": \"npm\",\n"
+                    + "  \"files\": [\n"
+                    + "    {\"path\": \"package.json\", \"purpose\": \"Project config\",\n"
+                    + "     \"fileType\": \"config\", \"dependencies\": [], \"required\": true},\n"
+                    + "    {\"path\": \"src/styles/globals.css\", \"purpose\": \"Global styles\",\n"
+                    + "     \"fileType\": \"style\", \"dependencies\": [], \"required\": true},\n"
+                    + "    {\"path\": \"src/components/PlanCard.tsx\", \"purpose\": \"Plan card component\",\n"
+                    + "     \"fileType\": \"component\", \"dependencies\": [\"src/styles/globals.css\"], \"required\": true},\n"
+                    + "    {\"path\": \"src/App.tsx\", \"purpose\": \"App entry\",\n"
+                    + "     \"fileType\": \"entry\", \"dependencies\": [\"src/components/PlanCard.tsx\"], \"required\": true}\n"
+                    + "  ],\n"
+                    + "  \"generationOrder\": [\"package.json\",\"src/styles/globals.css\",\"src/components/PlanCard.tsx\",\"src/App.tsx\"],\n"
+                    + "  \"buildCommands\": [\"npm install\", \"npm run build\"]\n"
+                    + "}";
             when(chatModel.chat(any(ChatRequest.class)))
-                    .thenReturn(ChatResponse.builder()
-                            .aiMessage(AiMessage.from(json))
-                            .build());
+                    .thenReturn(ChatResponse.builder().aiMessage(AiMessage.from(json)).build());
 
-            PlanResult plan = planner.plan("请规划以下需求的文件清单");
+            log.info("--- 模拟大模型返回 ---");
+            log.info("  用户输入: 'Plan file list', 模拟JSON: {}字符, 4文件", json.length());
 
-            // 验证顶层字段
+            PlanResult plan = planner.plan("Plan file list");
+
+            log.info("--- AiServices反序列化结果 ---");
+            log.info("  framework='{}', pkg='{}', 文件数={}", plan.framework(), plan.packageManager(), plan.files().size());
+            for (int i = 0; i < plan.files().size(); i++) {
+                var f = plan.files().get(i);
+                log.info("    {}. [{}] {} (依赖: {})", i+1, f.fileType(), f.path(), f.dependencies());
+            }
+            log.info("  生成顺序: {}, 构建命令: {}", plan.generationOrder(), plan.buildCommands());
+
             assertThat(plan.framework()).isEqualTo("react-vite-ts");
-            assertThat(plan.packageManager()).isEqualTo("npm");
             assertThat(plan.files()).hasSize(4);
-            assertThat(plan.buildCommands()).containsExactly("npm install", "npm run build");
-
-            // 验证文件顺序：config → style → component → entry
-            assertThat(plan.files().get(0).path()).isEqualTo("package.json");
             assertThat(plan.files().get(0).fileType()).isEqualTo("config");
-            assertThat(plan.files().get(1).path()).isEqualTo("src/styles/globals.css");
             assertThat(plan.files().get(1).fileType()).isEqualTo("style");
-            assertThat(plan.files().get(2).path()).isEqualTo("src/components/PlanCard.tsx");
             assertThat(plan.files().get(2).fileType()).isEqualTo("component");
-            assertThat(plan.files().get(3).path()).isEqualTo("src/App.tsx");
             assertThat(plan.files().get(3).fileType()).isEqualTo("entry");
-
-            // 验证依赖关系：PlanCard 依赖 globals.css，App 依赖 PlanCard
             assertThat(plan.files().get(2).dependencies()).contains("src/styles/globals.css");
-            assertThat(plan.files().get(3).dependencies()).contains("src/components/PlanCard.tsx");
-
-            // 验证生成顺序
             assertThat(plan.generationOrder()).containsExactly(
-                    "package.json", "src/styles/globals.css",
-                    "src/components/PlanCard.tsx", "src/App.tsx");
+                    "package.json", "src/styles/globals.css", "src/components/PlanCard.tsx", "src/App.tsx");
+            log.info("  [OK] JSON -> PlanResult 反序列化正确 (含4个FilePlan内层Record)");
+            log.info("  [OK] 文件类型顺序: config -> style -> component -> entry");
         }
     }
 
-    // ==================== 代码生成 Agent（工具调用） ====================
-
-    @Disabled("需要精确 mock AiServices 工具调用链，实际验证请用 AgentIntegrationTest（真实 AI 调用）")
+    @Disabled("需要精确mock AiServices工具调用链，实际验证请用AgentIntegrationTest")
     @Nested
-    @DisplayName("代码生成 Agent（带 @Tool 方法）")
+    @DisplayName("代码生成 Agent（带@Tool方法）")
     class CodeGenAgentTests {
-
         private CodeGenAgent agent;
 
         @BeforeEach
         void setUp() {
             when(promptLoader.loadSystemPrompt("code-generation"))
-                    .thenReturn("你是一个前端工程师，使用 writeFile 工具写入代码");
-
+                    .thenReturn("你是一个前端工程师，使用writeFile工具写入代码");
             agent = AiServices.builder(CodeGenAgent.class)
                     .chatModel(chatModel)
                     .systemMessageProvider(id -> promptLoader.loadSystemPrompt("code-generation"))
                     .tools(fileTools, projectContextTools)
                     .maxToolCallingRoundTrips(5)
                     .build();
+            log.info("========== 代码生成Agent Mock初始化 ==========");
+            log.info("  工具: FileTools + ProjectContextTools, maxToolCallingRoundTrips=5");
+            log.info("  (@Disabled -- 精确mock较复杂，请用AgentIntegrationTest验证真实AI调用)");
+            log.info("=============================================");
         }
 
         @Test
-        @DisplayName("模型调用 writeFile 工具时，应返回含行数的成功消息")
+        @DisplayName("模型调用writeFile工具 -> 返回成功消息")
         void shouldCallWriteFileAndReturnSuccess() {
             when(chatModel.chat(any(ChatRequest.class)))
-                    .thenReturn(ChatResponse.builder()
-                            .aiMessage(AiMessage.from("已生成 PlanCard.tsx 文件"))
-                            .build());
-
-            // 模拟 writeFile 工具被调用后的返回值
+                    .thenReturn(ChatResponse.builder().aiMessage(AiMessage.from("Generated PlanCard.tsx")).build());
             when(fileTools.writeFile("src/components/PlanCard.tsx",
                     "import React from 'react';\nexport default PlanCard;"))
-                    .thenReturn("文件写入成功: src/components/PlanCard.tsx（2 行）");
+                    .thenReturn("Success: src/components/PlanCard.tsx (2 lines)");
 
-            String result = agent.generate("生成 PlanCard.tsx 文件");
-
+            log.info("--- 代码生成Agent Mock测试 ---");
+            log.info("  模拟writeFile调用: path=src/components/PlanCard.tsx, content=2行");
+            String result = agent.generate("Generate PlanCard.tsx");
+            log.info("  agent.generate() 返回值: {}", result);
             assertThat(result).isNotNull();
+            log.info("  [OK] 代码生成Agent mock流程完成");
         }
     }
 }

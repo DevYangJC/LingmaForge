@@ -1,53 +1,185 @@
 # =============================================================================
-# 灵码工坊 (LingmaForge) —— 开发环境配置（模板）
+# 灵码工坊 (LingmaForge) 开发环境完整配置
 # =============================================================================
-# 本文件随版本库一起提交。所有密钥值均为占位符，团队共享用。
-#
-# 本地真实密钥请写在 application-dev-local.yml 中（已加入 .gitignore），
-# 该文件由 application.yml 通过 optional 导入 —— 有则覆盖，无则降级。
+# 本文档集中展示项目所有可配置项及其默认值，供团队参考。
+# 真实密钥写在 application-local.yml 中（已加入 .gitignore，不提交到仓库）。
 #
 # 快速开始：
-#   cp application-dev.yml application-dev-local.yml
-#   # 把 application-dev-local.yml 里的 placeholder 换成真实密钥
+#   1. 复制 application-dev.yml 为 application-local.yml
+#   2. 把 application-local.yml 中 only.lingma.models 各 api-key 换成你的真实密钥
+#   3. 启动：mvnw spring-boot:run
 # =============================================================================
 
 # ---- 加载本地密钥覆盖（可选，不存在不报错） ----
 spring:
   config:
-    import: optional:classpath:application-dev-local.yml
+    import: optional:classpath:application-local.yml
 
-# ---- 调试开关 ----
+  application:
+    name: lingmaForge-backend
+
+  # ---- 数据库：默认 H2 内嵌文件模式，开箱即跑 ----
+  #     生产环境在 application-prod.yml 中覆盖为 MySQL
+  datasource:
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:file:./data/lingmaforge;MODE=MySQL;DATABASE_TO_LOWER=TRUE;CASE_INSENSITIVE_IDENTIFIERS=TRUE
+    username: sa
+    password:
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  sql:
+    init:
+      mode: always
+
+server:
+  port: 8081
+
+# ---- MyBatis-Plus ----
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true
+  global-config:
+    db-config:
+      id-type: assign_id
+
+# ---- 调试日志 ----
 logging:
   level:
     com.lingmaforge: DEBUG
     org.mybatis: DEBUG
+    # 开启下面两行可查看 LangChain4j / LangGraph4j 请求详情
+    # dev.langchain4j: DEBUG
+    # org.bsc.langgraph4j: DEBUG
 
-# ---- 构建开关 ----
+# =============================================================================
+# 灵码工坊自定义配置
+# =============================================================================
 lingma:
-  sandbox:
-    build-enabled: ${LINGMA_BUILD_ENABLED:true}
+
+  # ---- 项目源码落盘根目录（后续可挂载到 Docker 容器） ----
+  workspace-root: ${LINGMA_WORKSPACE_ROOT:./workspace}
 
   # ===========================================================================
-  # 大模型 API 密钥 —— 所有 key 均为占位符
-  # 本地开发请复制本文件为 application-dev-local.yml 后填入真实密钥
+  # 大模型连接配置（lingma.models）
+  # ===========================================================================
+  # 每个模型独立配置 api-key / base-url / model-name / provider。
+  # key（如 deepseek-flash）是模型别名，供 lingma.agents 引用。
+  #
+  # provider 支持:
+  #   openai    -> OpenAI 兼容协议（DeepSeek / 通义千问 / Moonshot 全部走这个）
+  #   anthropic -> Anthropic 原生协议
+  #
+  # api-key 从环境变量读取；未设置则该模型自动跳过，Agent 回退到其他可用模型。
+  # 真实密钥写在 application-local.yml 中覆盖。
   # ===========================================================================
   models:
 
-    # ---- 以下为占用符，留空或填 xxx 均可 ----
-    # 模型自身的 base-url 等其他配置继承自 application.yml，无需重复
-    # =========================================================================
-
+    # ---- DeepSeek V4 Flash（最便宜，轻量任务主力） ----
+    # 价格: +00.001 / 1K input tokens | 上下文: 1M
+    # 适用: 需求分析、执行规划、样式优化
+    # 官网: https://platform.deepseek.com
     deepseek-flash:
-      api-key: ${DEEPSEEK_API_KEY:请填入DeepSeekFlash密钥}
+      base-url: https://api.deepseek.com/v1
+      api-key: ${DEEPSEEK_API_KEY:}
+      model-name: deepseek-v4-flash
+      provider: openai
+      log-requests: true
+      log-responses: true
+      max-retries: 2
 
+    # ---- DeepSeek V4 Pro（强推理，代码生成主力） ----
+    # 价格: +00.003 / 1K input tokens | 上下文: 1M
+    # 适用: 代码生成、迭代修改
     deepseek-pro:
-      api-key: ${DEEPSEEK_PRO_API_KEY:请填入DeepSeekPro密钥}
+      base-url: https://api.deepseek.com/v1
+      api-key: ${DEEPSEEK_PRO_API_KEY:}
+      model-name: deepseek-v4-pro
+      provider: openai
+      log-requests: true
+      log-responses: true
+      max-retries: 2
 
+    # ---- 通义千问 Qwen3-Coder-Plus（代码专用备份） ----
+    # 价格: ~+00.0035 / 1K input tokens | 上下文: 128K
+    # 适用: 代码生成（当 DeepSeek 不可用时回退）
+    # 官网: https://dashscope.aliyun.com
     qwen-coder:
-      api-key: ${DASHSCOPE_API_KEY:请填入DashScope密钥}
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api-key: ${DASHSCOPE_API_KEY:}
+      model-name: qwen3-coder-plus
+      provider: openai
+      log-requests: false
+      log-responses: false
+      max-retries: 2
 
+    # ---- 通义千问 Qwen-Plus（通用备份） ----
+    # 价格: ~+00.002 / 1K input tokens | 上下文: 128K
+    # 适用: 需求分析、执行规划（DeepSeek 不可用时的回退）
     qwen-plus:
-      api-key: ${DASHSCOPE_API_KEY:请填入DashScope密钥}
+      base-url: https://dashscope.aliyuncs.com/compatible-mode/v1
+      api-key: ${DASHSCOPE_API_KEY:}
+      model-name: qwen-plus
+      provider: openai
+      log-requests: false
+      log-responses: false
+      max-retries: 2
 
+    # ---- Moonshot Kimi K2.7 Code（编程特化，可选升级） ----
+    # 价格: +00.007 / 1K input, +00.028 / 1K output | 上下文: 128K
+    # 适用: 复杂代码生成（追求极致代码质量时升级到它）
+    # 官网: https://platform.moonshot.cn
     kimi-code:
-      api-key: ${MOONSHOT_API_KEY:请填入Moonshot密钥}
+      base-url: https://api.moonshot.cn/v1
+      api-key: ${MOONSHOT_API_KEY:}
+      model-name: kimi-k2.7-code
+      provider: openai
+      log-requests: false
+      log-responses: false
+      max-retries: 2
+
+  # ===========================================================================
+  # Agent -> 模型路由分配（lingma.agents）
+  # ===========================================================================
+  # 每个 Agent 的 model 字段引用 lingma.models 中的模型别名。
+  #
+  # 成本控制策略:
+  #   需求分析、执行规划、样式优化 -> deepseek-flash（最便宜）
+  #   代码生成、迭代修改          -> deepseek-pro （强推理）
+  #
+  # 换模型示例: 把 code-generation.model 从 deepseek-pro 改成 kimi-code 或 qwen-coder
+  # ===========================================================================
+  agents:
+    requirement-analysis:
+      model: deepseek-flash
+    execution-planning:
+      model: deepseek-flash
+    code-generation:
+      model: deepseek-pro
+    style-optimization:
+      model: deepseek-flash
+    iteration-modification:
+      model: deepseek-pro
+
+  # ===========================================================================
+  # 构建与沙箱配置（lingma.sandbox）
+  # ===========================================================================
+  sandbox:
+    # 构建开关: false=跳过npm build / true=真实构建（需Node.js）
+    build-enabled: ${LINGMA_BUILD_ENABLED:true}
+    # npm/node 可执行文件路径
+    node-binary: ${LINGMA_NODE_BINARY:node}
+    npm-binary: ${LINGMA_NPM_BINARY:npm}
+    # 构建超时（秒）
+    build-timeout-seconds: 180
+    # 预览地址
+    base-preview-host: ${LINGMA_PREVIEW_HOST:localhost}
+    preview-port: 5173
+
+  # ---- 流水线参数 ----
+  pipeline:
+    # 构建失败后最多回退重试次数
+    max-retry-count: 2

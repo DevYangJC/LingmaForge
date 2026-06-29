@@ -4,12 +4,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
+import com.lingmaforge.backend.ai.pipeline.CodeGenPipeline;
 import org.junit.jupiter.api.Test;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-
-import com.lingmaforge.backend.generation.pipeline.CodeGenPipeline;
 
 import dev.langchain4j.model.chat.ChatModel;
 
@@ -18,6 +19,8 @@ import dev.langchain4j.model.chat.ChatModel;
  */
 @SpringBootTest
 class AiFrameworkConfigurationTests {
+
+    private static final Logger log = LoggerFactory.getLogger(AiFrameworkConfigurationTests.class);
 
     private final ObjectProvider<Map<String, ChatModel>> modelsProvider;
     private final ObjectProvider<CodeGenPipeline> pipelineProvider;
@@ -30,14 +33,26 @@ class AiFrameworkConfigurationTests {
         this.pipelineProvider = pipelineProvider;
     }
 
-    /**
-     * 确认 LangChain4j 模型 Map 与编译后的 CodeGenPipeline 在 Spring 中可用。
-     * 即使没有任何 API Key 配置，Map 也应存在（可为空），流水线应成功编译。
-     */
     @Test
     void exposesLangChain4jAndLangGraph4jBeans() {
-        assertThat(modelsProvider.getIfAvailable()).isNotNull();
-        assertThat(pipelineProvider.getIfAvailable()).isNotNull();
-        assertThat(pipelineProvider.getObject().getCompiledGraph()).isNotNull();
+        log.info("========== AI 框架配置测试 ==========");
+
+        Map<String, ChatModel> models = modelsProvider.getIfAvailable();
+        assertThat(models).isNotNull();
+
+        log.info("[OK] ChatModel Map Bean 存在");
+        log.info("  已配置 {} 个模型: {}", models.size(),
+                models.keySet().isEmpty() ? "(空 — 未设置 API Key，将使用 NoOpModel 降级)" : models.keySet());
+        models.forEach((name, model) -> log.info("    - {} -> {} (provider: {})",
+                name, model.getClass().getSimpleName(), model.provider()));
+
+        CodeGenPipeline pipeline = pipelineProvider.getIfAvailable();
+        assertThat(pipeline).isNotNull();
+        assertThat(pipeline.getCompiledGraph()).isNotNull();
+
+        log.info("[OK] CodeGenPipeline Bean 存在");
+        log.info("  Graph: {}", pipeline.getCompiledGraph().getGraph(
+                org.bsc.langgraph4j.GraphRepresentation.Type.MERMAID));
+        log.info("========================================");
     }
 }
