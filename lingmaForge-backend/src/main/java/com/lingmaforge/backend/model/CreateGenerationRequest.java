@@ -6,6 +6,9 @@ import jakarta.validation.constraints.Size;
 
 /**
  * 创建生成任务的请求体。
+ *
+ * @param projectId 项目 ID，不能为空
+ * @param prompt    需求描述，最长 2000 个字符
  */
 public record CreateGenerationRequest(
         @NotNull(message = "项目 ID 不能为空")

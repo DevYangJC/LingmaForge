@@ -13,14 +13,14 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.lingmaforge.backend.ai.node.BuildVerificationNode;
-import com.lingmaforge.backend.ai.node.CodeGenerationNode;
-import com.lingmaforge.backend.ai.node.ExecutionPlanningNode;
-import com.lingmaforge.backend.ai.node.PreviewDeployNode;
-import com.lingmaforge.backend.ai.node.RequirementAnalysisNode;
-import com.lingmaforge.backend.ai.node.StyleOptimizationNode;
-import com.lingmaforge.backend.ai.observer.GenerationStreamRegistry;
-import com.lingmaforge.backend.model.BuildStatus;
+import com.lingmaforge.backend.generation.pipeline.node.BuildVerificationNode;
+import com.lingmaforge.backend.generation.pipeline.node.CodeGenerationNode;
+import com.lingmaforge.backend.generation.pipeline.node.ExecutionPlanningNode;
+import com.lingmaforge.backend.generation.pipeline.node.PreviewDeployNode;
+import com.lingmaforge.backend.generation.pipeline.node.RequirementAnalysisNode;
+import com.lingmaforge.backend.generation.pipeline.node.StyleOptimizationNode;
+import com.lingmaforge.backend.generation.stream.GenerationStreamRegistry;
+import com.lingmaforge.backend.generation.domain.BuildStatus;
 
 /**
  * CodeGenPipeline StateGraph 结构测试。

@@ -9,7 +9,7 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
-import com.lingmaforge.backend.ai.pipeline.CodeGenPipeline;
+import com.lingmaforge.backend.generation.pipeline.CodeGenPipeline;
 
 import dev.langchain4j.model.chat.ChatModel;
 

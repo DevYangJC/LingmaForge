@@ -24,10 +24,10 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.lingmaforge.backend.ai.observer.GenerationContext;
-import com.lingmaforge.backend.ai.observer.GenerationStreamEmitter;
-import com.lingmaforge.backend.model.Patch;
-import com.lingmaforge.backend.service.ProjectFileService;
+import com.lingmaforge.backend.generation.stream.GenerationContext;
+import com.lingmaforge.backend.generation.stream.GenerationStreamEmitter;
+import com.lingmaforge.backend.generation.domain.Patch;
+import com.lingmaforge.backend.project.service.ProjectFileService;
 
 /**
  * @Tool 方法单元测试。

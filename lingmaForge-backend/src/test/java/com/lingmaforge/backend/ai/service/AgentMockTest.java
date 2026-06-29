@@ -15,11 +15,11 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import com.lingmaforge.backend.ai.tool.FileTools;
-import com.lingmaforge.backend.ai.tool.ProjectContextTools;
-import com.lingmaforge.backend.model.PlanResult;
-import com.lingmaforge.backend.model.RequirementSpec;
-import com.lingmaforge.backend.service.PromptTemplateLoader;
+import com.lingmaforge.backend.generation.agent.tool.FileTools;
+import com.lingmaforge.backend.generation.agent.tool.ProjectContextTools;
+import com.lingmaforge.backend.generation.domain.PlanResult;
+import com.lingmaforge.backend.generation.domain.RequirementSpec;
+import com.lingmaforge.backend.generation.service.PromptTemplateLoader;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;

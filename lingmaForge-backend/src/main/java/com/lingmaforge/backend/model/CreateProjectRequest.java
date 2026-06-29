@@ -6,6 +6,10 @@ import jakarta.validation.constraints.Size;
 
 /**
  * 创建项目时使用的请求体。
+ *
+ * @param name        项目名称，最长 80 个字符
+ * @param description 项目描述，最长 500 个字符，可选
+ * @param framework   前端框架类型，支持 {@code react-vite-ts} 或 {@code vue-vite-ts}
  */
 public record CreateProjectRequest(
         @NotBlank(message = "项目名称不能为空")

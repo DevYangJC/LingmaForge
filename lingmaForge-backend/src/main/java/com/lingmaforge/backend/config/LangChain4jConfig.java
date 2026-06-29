@@ -4,6 +4,7 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
+import lombok.extern.slf4j.Slf4j;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
@@ -34,9 +35,9 @@ import dev.langchain4j.model.openai.OpenAiChatModel;
  */
 @Configuration
 @EnableConfigurationProperties({ LingmaModelsProperties.class, LingmaSandboxProperties.class })
+@Slf4j
 public class LangChain4jConfig {
 
-    private static final Logger log = LoggerFactory.getLogger(LangChain4jConfig.class);
 
     /**
      * 创建命名模型 Map。

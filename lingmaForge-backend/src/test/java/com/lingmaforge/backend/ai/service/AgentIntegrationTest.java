@@ -19,17 +19,17 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.lingmaforge.backend.ai.factory.AgentFactory;
-import com.lingmaforge.backend.ai.observer.GenerationContext;
-import com.lingmaforge.backend.ai.observer.GenerationStreamEmitter;
-import com.lingmaforge.backend.entity.ProjectFileEntity;
-import com.lingmaforge.backend.mapper.ProjectFileMapper;
-import com.lingmaforge.backend.model.CreateProjectRequest;
-import com.lingmaforge.backend.model.PlanResult;
-import com.lingmaforge.backend.model.RequirementSpec;
-import com.lingmaforge.backend.service.ProjectFileService;
-import com.lingmaforge.backend.service.ProjectService;
-import com.lingmaforge.backend.service.PromptTemplateLoader;
+import com.lingmaforge.backend.generation.agent.factory.AgentFactory;
+import com.lingmaforge.backend.generation.stream.GenerationContext;
+import com.lingmaforge.backend.generation.stream.GenerationStreamEmitter;
+import com.lingmaforge.backend.project.domain.ProjectFileEntity;
+import com.lingmaforge.backend.project.mapper.ProjectFileMapper;
+import com.lingmaforge.backend.project.dto.CreateProjectRequest;
+import com.lingmaforge.backend.generation.domain.PlanResult;
+import com.lingmaforge.backend.generation.domain.RequirementSpec;
+import com.lingmaforge.backend.project.service.ProjectFileService;
+import com.lingmaforge.backend.project.service.ProjectService;
+import com.lingmaforge.backend.generation.service.PromptTemplateLoader;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 

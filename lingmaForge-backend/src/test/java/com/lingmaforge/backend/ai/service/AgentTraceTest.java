@@ -13,12 +13,12 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import com.lingmaforge.backend.ai.factory.AgentFactory;
-import com.lingmaforge.backend.ai.observer.GenerationContext;
-import com.lingmaforge.backend.ai.observer.GenerationStreamEmitter;
-import com.lingmaforge.backend.model.CreateProjectRequest;
-import com.lingmaforge.backend.service.ProjectFileService;
-import com.lingmaforge.backend.service.ProjectService;
+import com.lingmaforge.backend.generation.agent.factory.AgentFactory;
+import com.lingmaforge.backend.generation.stream.GenerationContext;
+import com.lingmaforge.backend.generation.stream.GenerationStreamEmitter;
+import com.lingmaforge.backend.project.dto.CreateProjectRequest;
+import com.lingmaforge.backend.project.service.ProjectFileService;
+import com.lingmaforge.backend.project.service.ProjectService;
 
 /**
  * 🔍 Agent 调用链追踪测试 —— 打印每一步的输入和输出数据。

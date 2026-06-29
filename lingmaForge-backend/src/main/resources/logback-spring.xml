@@ -1,0 +1,104 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- ====================================================================== -->
+    <!-- 灵码工坊 (LingmaForge) 日志配置                                        -->
+    <!--                                                                        -->
+    <!-- 输出：                                                                  -->
+    <!--   1. 控制台 - 带 ANSI 颜色高亮（%highlight）                             -->
+    <!--   2. 文件   - 按天滚动，保留 30 天，INFO 以上                            -->
+    <!--   3. 错误文件 - 只记 ERROR，按天滚动，保留 90 天                         -->
+    <!--                                                                        -->
+    <!-- MDC 可用 key：                                                          -->
+    <!--   traceId  - 请求级别的追踪 ID（由 TraceFilter 自动注入）                -->
+    <!--   taskId   - 生成任务 ID（由 GenerationContext 手动注入）               -->
+    <!--                                                                        -->
+    <!-- 注意：不使用 %clr / %wEx 等 Spring Boot 扩展转换词，                     -->
+    <!-- 只用 logback-classic 原生的 %highlight / %ex，避免初始化时序问题。       -->
+    <!-- ====================================================================== -->
+
+    <!-- ===== 属性 ===== -->
+    <springProperty scope="context" name="APP_NAME" source="spring.application.name"
+                    defaultValue="lingmaforge"/>
+    <property name="LOG_PATH" value="${LOG_PATH:-./logs}"/>
+
+    <!-- 控制台格式：%highlight 给日志级别着色，MDC traceId 用括号包裹 -->
+    <property name="CONSOLE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%5p) %magenta(${PID:- }) %cyan([%X{traceId:-}]) --- [%15.15t] %cyan(%-40.40logger{39}) : %m%n%ex"/>
+
+    <!-- 文件格式：无颜色，含完整时间、线程名、MDC traceId + taskId -->
+    <property name="FILE_PATTERN"
+              value="%d{yyyy-MM-dd HH:mm:ss.SSS} %5p ${PID:- } [%X{traceId:-}][%X{taskId:-}] --- [%t] %-40.40logger{39} : %m%n%ex"/>
+
+    <!-- ===== 控制台追加器 ===== -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+    </appender>
+
+    <!-- ===== 全量日志文件：按天 + 大小滚动，保留 30 天 ===== -->
+    <appender name="FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${APP_NAME}.log</file>
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/archived/${APP_NAME}-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>30</maxHistory>
+            <totalSizeCap>2GB</totalSizeCap>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ===== 错误日志单独文件：只记 ERROR，保留 90 天 ===== -->
+    <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_PATH}/${APP_NAME}-error.log</file>
+        <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+            <level>ERROR</level>
+        </filter>
+        <encoder>
+            <pattern>${FILE_PATTERN}</pattern>
+            <charset>UTF-8</charset>
+        </encoder>
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_PATH}/archived/${APP_NAME}-error-%d{yyyy-MM-dd}.%i.log.gz</fileNamePattern>
+            <maxFileSize>50MB</maxFileSize>
+            <maxHistory>90</maxHistory>
+        </rollingPolicy>
+    </appender>
+
+    <!-- ===== 开发环境：控制台 + 文件 + 详细日志 ===== -->
+    <springProfile name="dev,default">
+        <logger name="com.lingmaforge.backend" level="DEBUG"/>
+        <logger name="dev.langchain4j" level="INFO"/>
+        <logger name="org.bsc.langgraph4j" level="INFO"/>
+        <logger name="org.springframework" level="INFO"/>
+        <logger name="com.baomidou.mybatisplus" level="INFO"/>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+    </springProfile>
+
+    <!-- ===== 生产环境：文件为主 + 精简日志 ===== -->
+    <springProfile name="prod">
+        <logger name="com.lingmaforge" level="INFO"/>
+        <logger name="dev.langchain4j.model.openai.OpenAiChatModel" level="WARN"/>
+        <logger name="dev.langchain4j.model.anthropic.AnthropicChatModel" level="WARN"/>
+        <logger name="dev.langchain4j" level="WARN"/>
+        <logger name="org.bsc.langgraph4j" level="WARN"/>
+        <logger name="org.springframework" level="WARN"/>
+        <logger name="com.baomidou.mybatisplus" level="WARN"/>
+
+        <root level="INFO">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+            <appender-ref ref="ERROR_FILE"/>
+        </root>
+    </springProfile>
+
+</configuration>

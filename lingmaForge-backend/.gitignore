@@ -5,3 +5,6 @@ target/
 *.log
 data/
 .env
+
+# 本地开发密钥覆盖（不提交到仓库）
+application-dev-local.yml

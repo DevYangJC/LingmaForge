@@ -1,0 +1,53 @@
+# =============================================================================
+# 灵码工坊 (LingmaForge) —— 开发环境配置（模板）
+# =============================================================================
+# 本文件随版本库一起提交。所有密钥值均为占位符，团队共享用。
+#
+# 本地真实密钥请写在 application-dev-local.yml 中（已加入 .gitignore），
+# 该文件由 application.yml 通过 optional 导入 —— 有则覆盖，无则降级。
+#
+# 快速开始：
+#   cp application-dev.yml application-dev-local.yml
+#   # 把 application-dev-local.yml 里的 placeholder 换成真实密钥
+# =============================================================================
+
+# ---- 加载本地密钥覆盖（可选，不存在不报错） ----
+spring:
+  config:
+    import: optional:classpath:application-dev-local.yml
+
+# ---- 调试开关 ----
+logging:
+  level:
+    com.lingmaforge: DEBUG
+    org.mybatis: DEBUG
+
+# ---- 构建开关 ----
+lingma:
+  sandbox:
+    build-enabled: ${LINGMA_BUILD_ENABLED:true}
+
+  # ===========================================================================
+  # 大模型 API 密钥 —— 所有 key 均为占位符
+  # 本地开发请复制本文件为 application-dev-local.yml 后填入真实密钥
+  # ===========================================================================
+  models:
+
+    # ---- 以下为占用符，留空或填 xxx 均可 ----
+    # 模型自身的 base-url 等其他配置继承自 application.yml，无需重复
+    # =========================================================================
+
+    deepseek-flash:
+      api-key: ${DEEPSEEK_API_KEY:请填入DeepSeekFlash密钥}
+
+    deepseek-pro:
+      api-key: ${DEEPSEEK_PRO_API_KEY:请填入DeepSeekPro密钥}
+
+    qwen-coder:
+      api-key: ${DASHSCOPE_API_KEY:请填入DashScope密钥}
+
+    qwen-plus:
+      api-key: ${DASHSCOPE_API_KEY:请填入DashScope密钥}
+
+    kimi-code:
+      api-key: ${MOONSHOT_API_KEY:请填入Moonshot密钥}

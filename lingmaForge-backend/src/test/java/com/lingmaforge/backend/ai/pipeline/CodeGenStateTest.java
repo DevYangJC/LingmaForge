@@ -13,10 +13,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
-import com.lingmaforge.backend.model.BuildStatus;
-import com.lingmaforge.backend.model.GeneratedFile;
-import com.lingmaforge.backend.model.PlanResult;
-import com.lingmaforge.backend.model.RequirementSpec;
+import com.lingmaforge.backend.generation.domain.BuildStatus;
+import com.lingmaforge.backend.generation.domain.GeneratedFile;
+import com.lingmaforge.backend.generation.domain.PlanResult;
+import com.lingmaforge.backend.generation.domain.RequirementSpec;
 
 /**
  * CodeGenState（LangGraph4j AgentState）单元测试。
