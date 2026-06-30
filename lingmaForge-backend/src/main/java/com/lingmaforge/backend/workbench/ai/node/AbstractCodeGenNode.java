@@ -24,6 +24,15 @@ public abstract class AbstractCodeGenNode {
     }
 
     /**
+     * 获取流注册中心，供子节点在流式回调中检查停止信号。
+     *
+     * @return 流注册中心
+     */
+    protected GenerationStreamRegistry getStreamRegistry() {
+        return streamRegistry;
+    }
+
+    /**
      * 注入当前任务的生成上下文。
      *
      * @param state 流水线状态
@@ -38,15 +47,44 @@ public abstract class AbstractCodeGenNode {
     }
 
     /**
+     * 注入当前任务的生成上下文，并向前端广播节点开始事件。
+     *
+     * @param state    流水线状态
+     * @param nodeName 节点名称
+     * @param title    展示标题
+     * @return SSE 事件发射器
+     */
+    protected GenerationStreamEmitter setupContext(CodeGenState state, String nodeName, String title) {
+        GenerationStreamEmitter emitter = setupContext(state);
+        if (emitter != null) {
+            emitter.emitNodeStart(nodeName, title);
+        }
+        return emitter;
+    }
+
+    /**
      * 清理当前线程的生成上下文。
      */
     protected void clearContext() {
         GenerationContext.clear();
     }
 
+    /**
+     * 广播节点完成事件并清理上下文。
+     *
+     * @param emitter  SSE 事件发射器
+     * @param nodeName 节点名称
+     */
+    protected void completeNode(GenerationStreamEmitter emitter, String nodeName) {
+        if (emitter != null) {
+            emitter.emitNodeEnd(nodeName);
+        }
+        clearContext();
+    }
+
     private Long parseProjectId(CodeGenState state) {
         return Long.parseLong(state.projectId().orElseThrow(
-                () -> new IllegalStateException("状态中缺少 projectId")));
+            () -> new IllegalStateException("状态中缺少 projectId")));
     }
 
     /**

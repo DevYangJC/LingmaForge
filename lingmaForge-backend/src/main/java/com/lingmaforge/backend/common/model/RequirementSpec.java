@@ -53,8 +53,8 @@ public record RequirementSpec(
             String path,
             String method,
             String description,
-            Map<String, Object> requestShape,
-            Map<String, Object> responseShape) implements Serializable {
+            Object requestShape,
+            Object responseShape) implements Serializable {
 
         private static final long serialVersionUID = 1L;
     }

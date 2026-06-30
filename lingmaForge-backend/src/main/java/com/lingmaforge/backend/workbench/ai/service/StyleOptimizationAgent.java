@@ -1,6 +1,7 @@
 package com.lingmaforge.backend.workbench.ai.service;
 
 import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 
 /**
  * 样式优化 Agent 的 AiServices 接口契约。
@@ -16,5 +17,6 @@ public interface StyleOptimizationAgent {
      * @param prompt 样式优化指令（含已生成文件列表）
      * @return Agent 完成后的文本回复
      */
-    String optimize(@UserMessage String prompt);
+    @UserMessage("{{prompt}}")
+    String optimize(@V("prompt") String prompt);
 }

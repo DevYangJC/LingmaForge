@@ -43,7 +43,7 @@ public class BuildVerificationNode extends AbstractCodeGenNode {
      * @return 状态更新：buildStatus / buildTime / buildError / retryCount
      */
     public Map<String, Object> execute(CodeGenState state) {
-        GenerationStreamEmitter emitter = setupContext(state);
+        GenerationStreamEmitter emitter = setupContext(state, NODE_NAME, "正在进行代码构建与类型验证...");
         Long projectId = projectId(state);
         try {
             emitter.emitLog("安装依赖包... (npm install)");
@@ -74,7 +74,7 @@ public class BuildVerificationNode extends AbstractCodeGenNode {
             updates.put(CodeGenState.RETRY_COUNT, state.retryCount().orElse(0) + 1);
             return updates;
         } finally {
-            clearContext();
+            completeNode(emitter, NODE_NAME);
         }
     }
 }

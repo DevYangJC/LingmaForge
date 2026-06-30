@@ -8,6 +8,10 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import com.lingmaforge.backend.common.model.FileModification;
 import com.lingmaforge.backend.common.model.SandboxInfo;
@@ -51,8 +55,8 @@ public class GenerationService {
 
     private static final Logger log = LoggerFactory.getLogger(GenerationService.class);
 
-    /** SSE 连接超时时间：5 分钟。 */
-    private static final long SSE_TIMEOUT = 300_000L;
+    /** SSE 连接超时时间：不限时（依赖沙箱/容器网关管理真实超时，防止 Spring 主动超时断连）。 */
+    private static final long SSE_TIMEOUT = 0L;
 
     private final CodeGenPipeline pipeline;
     private final AgentFactory agentFactory;
@@ -65,6 +69,12 @@ public class GenerationService {
     private final Executor executor;
 
     private final ConcurrentHashMap<String, StreamContext> streamContextMap = new ConcurrentHashMap<>();
+
+    private final ScheduledExecutorService heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(runnable -> {
+        Thread thread = new Thread(runnable, "sse-heartbeat-thread");
+        thread.setDaemon(true);
+        return thread;
+    });
 
     public GenerationService(CodeGenPipeline pipeline,
             AgentFactory agentFactory,
@@ -131,6 +141,17 @@ public class GenerationService {
 
         Long projectId = task.getProjectId();
         String prompt = task.getPrompt();
+
+        // 启动心跳定时器
+        ScheduledFuture<?> heartbeatFuture = heartbeatExecutor.scheduleAtFixedRate(() -> {
+            try {
+                emitter.send(SseEmitter.event().comment("keep-alive"));
+            } catch (Exception e) {
+                log.debug("SSE 发送心跳失败: taskId={}", taskId);
+            }
+        }, 15, 15, TimeUnit.SECONDS);
+        context.heartbeatFuture = heartbeatFuture;
+
         executor.execute(() -> runPipeline(taskId, projectId, prompt, sseEmitter, context));
         return emitter;
     }
@@ -138,9 +159,13 @@ public class GenerationService {
     /**
      * 停止生成。
      *
+     * <p>同时向 {@link GenerationStreamRegistry} 注册停止请求，使正在执行的节点
+     * 能在流式回调中检测到停止信号并提前退出。</p>
+     *
      * @param taskId 任务 ID
      */
     public void stopGeneration(String taskId) {
+        streamRegistry.requestStop(taskId);
         stopStreamProcessing(taskId);
         taskService.markStopped(taskId);
     }
@@ -182,6 +207,17 @@ public class GenerationService {
 
         Long projectId = task.getProjectId();
         String prompt = task.getPrompt();
+
+        // 启动心跳定时器
+        ScheduledFuture<?> heartbeatFuture = heartbeatExecutor.scheduleAtFixedRate(() -> {
+            try {
+                emitter.send(SseEmitter.event().comment("keep-alive"));
+            } catch (Exception e) {
+                log.debug("SSE 发送心跳失败: taskId={}", taskId);
+            }
+        }, 15, 15, TimeUnit.SECONDS);
+        context.heartbeatFuture = heartbeatFuture;
+
         executor.execute(() -> runIteration(taskId, projectId, prompt, sseEmitter, context));
         return emitter;
     }
@@ -265,8 +301,11 @@ public class GenerationService {
     }
 
     private void cleanup(String taskId) {
-        streamContextMap.remove(taskId);
-        streamRegistry.unregister(taskId);
+        StreamContext context = streamContextMap.remove(taskId);
+        if (context != null && context.heartbeatFuture != null) {
+            context.heartbeatFuture.cancel(true);
+        }
+        streamRegistry.unregister(taskId);  // 同时清理 stoppedTasks
     }
 
     private void ensureProjectExists(Long projectId) {
@@ -296,6 +335,7 @@ public class GenerationService {
     public void destroy() {
         streamContextMap.keySet().forEach(this::stopStreamProcessing);
         streamContextMap.clear();
+        heartbeatExecutor.shutdown();
     }
 
     /** 流上下文，记录停止标志。 */
@@ -303,6 +343,7 @@ public class GenerationService {
         final String taskId;
         final SseStreamEmitter emitter;
         volatile boolean stopped;
+        ScheduledFuture<?> heartbeatFuture;
 
         StreamContext(String taskId, SseStreamEmitter emitter) {
             this.taskId = taskId;
@@ -378,6 +419,44 @@ public class GenerationService {
             data.put("error", false);
             data.put("modifications", modifications);
             send("message", data);
+        }
+
+        @Override
+        public void emitNodeStart(String nodeName, String title) {
+            send("node_start", Map.of(
+                    "threadId", taskId,
+                    "nodeName", nodeName,
+                    "title", title));
+        }
+
+        @Override
+        public void emitNodeEnd(String nodeName) {
+            send("node_end", Map.of(
+                    "threadId", taskId,
+                    "nodeName", nodeName));
+        }
+
+        @Override
+        public void emitThinking(String nodeName, String token) {
+            send("thinking", Map.of(
+                    "threadId", taskId,
+                    "nodeName", nodeName,
+                    "token", token));
+        }
+
+        @Override
+        public void emitFileToken(String path, String token) {
+            send("file_token", Map.of(
+                    "threadId", taskId,
+                    "path", path,
+                    "token", token));
+        }
+
+        @Override
+        public void emitFileComplete(String path) {
+            send("file_complete", Map.of(
+                    "threadId", taskId,
+                    "path", path));
         }
 
         private void send(String event, Object data) {

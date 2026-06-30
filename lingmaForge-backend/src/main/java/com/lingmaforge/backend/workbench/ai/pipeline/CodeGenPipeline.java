@@ -112,7 +112,8 @@ public class CodeGenPipeline {
      * @param state 流水线状态
      * @return 下一个节点名
      */
-    private String routeAfterBuild(CodeGenState state) {
+    // public 可见性供构建验证测试直接调用条件路由逻辑
+    public String routeAfterBuild(CodeGenState state) {
         BuildStatus status = state.buildStatus().orElse(BuildStatus.FAILED);
         if (status == BuildStatus.SUCCESS) {
             return PreviewDeployNode.NODE_NAME;

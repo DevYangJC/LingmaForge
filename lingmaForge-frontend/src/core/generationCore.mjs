@@ -45,6 +45,7 @@ function cloneState(state) {
     files: state.files.map((file) => ({ ...file })),
     logs: [...state.logs],
     snapshots: { ...state.snapshots },
+    nodeThinkings: { ...state.nodeThinkings },
   }
 }
 
@@ -108,6 +109,7 @@ export function createInitialWorkbenchState(taskId = '', prompt = '') {
       },
     ],
     snapshots: {},
+    nodeThinkings: {},
   }
 }
 
@@ -213,7 +215,9 @@ export function reduceGenerationMessage(currentState, msg) {
   const state = cloneState(currentState)
   state.isGenerating = true
   state.mode = 'generation'
-  state.checklist[msg.nodeName] = 'done'
+  if (state.checklist[msg.nodeName] !== 'running') {
+    state.checklist[msg.nodeName] = 'done'
+  }
 
   if (msg.nodeName !== 'build_verification') appendAssistantMessage(state, msg)
 

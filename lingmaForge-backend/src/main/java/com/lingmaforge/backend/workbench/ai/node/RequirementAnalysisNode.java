@@ -43,8 +43,7 @@ public class RequirementAnalysisNode extends AbstractCodeGenNode {
      * @return 状态更新：写入 analysisResult
      */
     public Map<String, Object> execute(CodeGenState state) {
-        GenerationStreamEmitter emitter = setupContext(state);
-        emitter.emitNode(NODE_NAME, "正在分析需求...", "TEXT");
+        GenerationStreamEmitter emitter = setupContext(state, NODE_NAME, "正在分析需求规格...");
         try {
             String userPrompt = state.prompt().orElseThrow();
             log.info("[{}] 需求分析开始: {}", state.taskId().orElse(""), userPrompt);
@@ -56,7 +55,7 @@ public class RequirementAnalysisNode extends AbstractCodeGenNode {
             emitter.emitNode(NODE_NAME, "需求分析失败: " + e.getMessage(), "TEXT");
             throw e;
         } finally {
-            clearContext();
+            completeNode(emitter, NODE_NAME);
         }
     }
 }

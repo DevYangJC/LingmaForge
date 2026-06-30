@@ -88,6 +88,7 @@ export interface WorkbenchCoreState {
   files: FileNode[]
   logs: LogEntry[]
   snapshots: Record<string, string>
+  nodeThinkings: Record<string, string>
 }
 
 export const pipelineNodeNames: PipelineNodeName[]

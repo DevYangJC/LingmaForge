@@ -35,15 +35,8 @@ public class ExecutionPlanningNode extends AbstractCodeGenNode {
         this.planner = agentFactory.createExecutionPlanner();
     }
 
-    /**
-     * 执行规划。
-     *
-     * @param state 流水线状态
-     * @return 状态更新：写入 planResult
-     */
     public Map<String, Object> execute(CodeGenState state) {
-        GenerationStreamEmitter emitter = setupContext(state);
-        emitter.emitNode(NODE_NAME, "正在规划文件清单...", "TEXT");
+        GenerationStreamEmitter emitter = setupContext(state, NODE_NAME, "正在规划文件清单与构建计划...");
         try {
             RequirementSpec analysisResult = state.analysisResult().orElseThrow();
             String userPrompt = "请根据以下需求规范规划文件清单：\n" + describeRequirement(analysisResult);
@@ -57,7 +50,7 @@ public class ExecutionPlanningNode extends AbstractCodeGenNode {
             emitter.emitNode(NODE_NAME, "执行规划失败: " + e.getMessage(), "TEXT");
             throw e;
         } finally {
-            clearContext();
+            completeNode(emitter, NODE_NAME);
         }
     }
 

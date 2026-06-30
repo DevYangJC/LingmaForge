@@ -41,8 +41,7 @@ public class StyleOptimizationNode extends AbstractCodeGenNode {
      * @return 状态更新（空，样式修改通过 patchFile 工具直接生效）
      */
     public Map<String, Object> execute(CodeGenState state) {
-        GenerationStreamEmitter emitter = setupContext(state);
-        emitter.emitNode(NODE_NAME, "正在优化样式...", "TEXT");
+        GenerationStreamEmitter emitter = setupContext(state, NODE_NAME, "正在进行样式微调与视觉优化...");
         try {
             List<String> stylePaths = collectStylePaths(state);
             if (stylePaths.isEmpty()) {
@@ -61,7 +60,7 @@ public class StyleOptimizationNode extends AbstractCodeGenNode {
             // 样式优化失败不阻断流水线，继续构建验证
             return Map.of();
         } finally {
-            clearContext();
+            completeNode(emitter, NODE_NAME);
         }
     }
 

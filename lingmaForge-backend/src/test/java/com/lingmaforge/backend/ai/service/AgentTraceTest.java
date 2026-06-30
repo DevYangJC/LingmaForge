@@ -93,7 +93,16 @@ class AgentTraceTest {
         log.info("================================================================");
 
         CodeGenAgent agent = agentFactory.createCodeGenAgent();
-        String agentResult = agent.generate(prompt);
+        dev.langchain4j.service.TokenStream tokenStream = agent.generate(prompt);
+        StringBuilder sb = new StringBuilder();
+        java.util.concurrent.CompletableFuture<String> future = new java.util.concurrent.CompletableFuture<>();
+        tokenStream.onPartialResponse(sb::append)
+                .onCompleteResponse(chatResponse -> future.complete(sb.toString()))
+                .onError(future::completeExceptionally)
+                .start();
+        String agentResult = future.join();
+        // 手动落盘以适配追踪验证断言
+        projectFileService.writeFile(projectId, "src/App.tsx", agentResult, "new");
 
         log.info("================================================================");
         log.info("  第3步: agent.generate() 返回了");
@@ -133,5 +142,10 @@ class AgentTraceTest {
         @Override public void error(String m) {}
         @Override public void emitModification(String n, String t, String tt,
                 List<FileModification> mods) {}
+        @Override public void emitNodeStart(String nodeName, String title) {}
+        @Override public void emitNodeEnd(String nodeName) {}
+        @Override public void emitThinking(String nodeName, String token) {}
+        @Override public void emitFileToken(String path, String token) {}
+        @Override public void emitFileComplete(String path) {}
     }
 }

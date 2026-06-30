@@ -25,6 +25,7 @@ import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
 import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.service.TokenStream;
 
 import org.junit.jupiter.api.*;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -58,6 +59,7 @@ class PipelineNodesTest {
     @Mock private ProjectFileService projectFileService;
     @Mock private SandboxService sandboxService;
     @Mock private ProjectService projectService;
+    @Mock private CodeGenAgent mockCodeGenAgent;
 
     // ==================== 通用测试常量 ====================
 
@@ -172,7 +174,12 @@ class PipelineNodesTest {
                         "iteration-modification",
                         new LingmaModelsProperties.AgentModelConfig("mock-model")));
         return new AgentFactory(Map.of("mock-model", chatModel), props, promptLoader,
-                fileTools, projectContextTools, iterationTools);
+                fileTools, projectContextTools, iterationTools) {
+            @Override
+            public CodeGenAgent createCodeGenAgent() {
+                return mockCodeGenAgent;
+            }
+        };
     }
 
     // ==================== 节点一：需求分析 ====================
@@ -386,13 +393,21 @@ class PipelineNodesTest {
                     .thenReturn(ChatResponse.builder()
                             .aiMessage(AiMessage.from(VALID_REQUIREMENT_JSON)).build())
                     .thenReturn(ChatResponse.builder()
-                            .aiMessage(AiMessage.from(VALID_PLAN_RESULT_JSON)).build())
-                    .thenReturn(ChatResponse.builder()
-                            .aiMessage(AiMessage.from("Generated package.json")).build())
-                    .thenReturn(ChatResponse.builder()
-                            .aiMessage(AiMessage.from("Generated src/App.tsx")).build())
-                    .thenReturn(ChatResponse.builder()
-                            .aiMessage(AiMessage.from("Generated src/components/PlanCard.tsx")).build());
+                            .aiMessage(AiMessage.from(VALID_PLAN_RESULT_JSON)).build());
+
+            // Stub CodeGenAgent generate calls to return progressive tokens using StubTokenStream
+            lenient().when(mockCodeGenAgent.generate(anyString()))
+                    .thenAnswer(inv -> {
+                        String prompt = inv.getArgument(0);
+                        if (prompt.contains("package.json")) {
+                            return new StubTokenStream("{\n  \"name\": \"subscription-store\"\n}");
+                        } else if (prompt.contains("App.tsx")) {
+                            return new StubTokenStream("import React from 'react';\nexport default App;");
+                        } else {
+                            return new StubTokenStream("export const PlanCard = () => null;");
+                        }
+                    });
+
             lenient().when(fileTools.writeFile(anyString(), anyString()))
                     .thenAnswer(inv -> "Success: " + inv.getArgument(0));
             lenient().when(projectContextTools.readProjectContext())
@@ -413,7 +428,7 @@ class PipelineNodesTest {
                     new ExecutionPlanningNode(factory, streamRegistry);
             CodeGenerationNode genNode = new CodeGenerationNode(
                     factory, streamRegistry, promptLoader, projectFileService,
-                    new com.fasterxml.jackson.databind.ObjectMapper());
+                    new com.fasterxml.jackson.databind.ObjectMapper(), Runnable::run);
 
             // 需求分析
             CodeGenState state = baseState(null);
@@ -430,8 +445,9 @@ class PipelineNodesTest {
             Map<String, Object> result = genNode.execute(state);
 
             assertThat(result).containsKey(CodeGenState.BUILD_ERROR);
-            // 验证 3 个文件均调用了 Agent.generate()（通过 chatModel 被调用次数推断）
-            verify(chatModel, atLeast(5)).chat(any(ChatRequest.class));
+            // 验证 3 个文件均调用了 Agent.generate()
+            verify(chatModel, times(2)).chat(any(ChatRequest.class));
+            verify(mockCodeGenAgent, times(3)).generate(anyString());
             log.info("[OK] 代码生成节点遍历3个文件完成");
         }
 
@@ -447,7 +463,7 @@ class PipelineNodesTest {
                     new ExecutionPlanningNode(factory, streamRegistry);
             CodeGenerationNode genNode = new CodeGenerationNode(
                     factory, streamRegistry, promptLoader, projectFileService,
-                    new com.fasterxml.jackson.databind.ObjectMapper());
+                    new com.fasterxml.jackson.databind.ObjectMapper(), Runnable::run);
 
             CodeGenState state = baseState(null);
             Map<String, Object> ar = analysisNode.execute(state);
@@ -470,6 +486,7 @@ class PipelineNodesTest {
 
             // BUILD_ERROR 应被清空
             assertThat(result.get(CodeGenState.BUILD_ERROR)).isNull();
+            verify(mockCodeGenAgent, times(1)).generate(anyString());
             log.info("[OK] 构建失败回退修复流程验证通过");
         }
     }
@@ -706,7 +723,7 @@ class PipelineNodesTest {
             ExecutionPlanningNode en = new ExecutionPlanningNode(factory, streamRegistry);
             CodeGenerationNode cn = new CodeGenerationNode(
                     factory, streamRegistry, promptLoader, projectFileService,
-                    new com.fasterxml.jackson.databind.ObjectMapper());
+                    new com.fasterxml.jackson.databind.ObjectMapper(), Runnable::run);
             StyleOptimizationNode sn = new StyleOptimizationNode(factory, streamRegistry);
             BuildVerificationNode bn = new BuildVerificationNode(sandboxService, streamRegistry);
             PreviewDeployNode pn = new PreviewDeployNode(sandboxService, projectService, streamRegistry);
@@ -747,6 +764,70 @@ class PipelineNodesTest {
             pipeline.errorEnd(state);
             verify(streamEmitter).error(argThat(msg -> msg.contains("npm build failed")));
             log.info("[OK] error_end节点验证通过");
+        }
+    }
+
+    private static class StubTokenStream implements TokenStream {
+        private java.util.function.Consumer<String> partialResponseConsumer;
+        private java.util.function.Consumer<ChatResponse> completeResponseConsumer;
+        private java.util.function.Consumer<dev.langchain4j.model.chat.response.PartialThinking> partialThinkingConsumer;
+        private final String content;
+
+        public StubTokenStream(String content) {
+            this.content = content;
+        }
+
+        @Override
+        public TokenStream onPartialResponse(java.util.function.Consumer<String> consumer) {
+            this.partialResponseConsumer = consumer;
+            return this;
+        }
+
+        @Override
+        public TokenStream onPartialThinking(java.util.function.Consumer<dev.langchain4j.model.chat.response.PartialThinking> consumer) {
+            this.partialThinkingConsumer = consumer;
+            return this;
+        }
+
+        @Override
+        public TokenStream onRetrieved(java.util.function.Consumer<List<dev.langchain4j.rag.content.Content>> consumer) {
+            return this;
+        }
+
+        @Override
+        public TokenStream onToolExecuted(java.util.function.Consumer<dev.langchain4j.service.tool.ToolExecution> consumer) {
+            return this;
+        }
+
+        @Override
+        public TokenStream onCompleteResponse(java.util.function.Consumer<ChatResponse> consumer) {
+            this.completeResponseConsumer = consumer;
+            return this;
+        }
+
+        @Override
+        public TokenStream onError(java.util.function.Consumer<Throwable> consumer) {
+            return this;
+        }
+
+        @Override
+        public TokenStream ignoreErrors() {
+            return this;
+        }
+
+        @Override
+        public void start() {
+            if (partialThinkingConsumer != null) {
+                partialThinkingConsumer.accept(new dev.langchain4j.model.chat.response.PartialThinking("Thinking: Planning layout for " + content.substring(0, Math.min(15, content.length())) + "..."));
+            }
+            if (partialResponseConsumer != null) {
+                partialResponseConsumer.accept(content);
+            }
+            if (completeResponseConsumer != null) {
+                completeResponseConsumer.accept(ChatResponse.builder()
+                        .aiMessage(dev.langchain4j.data.message.AiMessage.from(content))
+                        .build());
+            }
         }
     }
 }

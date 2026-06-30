@@ -41,7 +41,7 @@ public class PreviewDeployNode extends AbstractCodeGenNode {
      * @return 状态更新：previewUrl / previewPort
      */
     public Map<String, Object> execute(CodeGenState state) {
-        GenerationStreamEmitter emitter = setupContext(state);
+        GenerationStreamEmitter emitter = setupContext(state, NODE_NAME, "正在启动预览开发服务器...");
         Long projectId = projectId(state);
         try {
             SandboxInfo sandbox = sandboxService.startDevServer(projectId);
@@ -51,7 +51,7 @@ public class PreviewDeployNode extends AbstractCodeGenNode {
                     CodeGenState.PREVIEW_URL, sandbox.url(),
                     CodeGenState.PREVIEW_PORT, sandbox.port());
         } finally {
-            clearContext();
+            completeNode(emitter, NODE_NAME);
         }
     }
 }

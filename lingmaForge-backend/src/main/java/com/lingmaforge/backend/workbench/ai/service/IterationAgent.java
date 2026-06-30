@@ -1,6 +1,7 @@
 package com.lingmaforge.backend.workbench.ai.service;
 
 import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 
 /**
  * 迭代修改 Agent 的 AiServices 接口契约。
@@ -16,5 +17,6 @@ public interface IterationAgent {
      * @param prompt 迭代修改指令（含用户指令、项目上下文、相关文件内容）
      * @return Agent 完成后的文本回复
      */
-    String modify(@UserMessage String prompt);
+    @UserMessage("{{prompt}}")
+    String modify(@V("prompt") String prompt);
 }

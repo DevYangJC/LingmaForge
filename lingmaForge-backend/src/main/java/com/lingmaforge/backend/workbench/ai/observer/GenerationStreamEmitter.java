@@ -61,4 +61,42 @@ public interface GenerationStreamEmitter {
      * @param modifications 文件修改列表
      */
     void emitModification(String nodeName, String text, String textType, List<FileModification> modifications);
+
+    /**
+     * 推送节点开始事件。
+     *
+     * @param nodeName 节点名称
+     * @param title    展示标题
+     */
+    void emitNodeStart(String nodeName, String title);
+
+    /**
+     * 推送节点结束事件。
+     *
+     * @param nodeName 节点名称
+     */
+    void emitNodeEnd(String nodeName);
+
+    /**
+     * 推送思考过程中的 Token。
+     *
+     * @param nodeName 节点名称
+     * @param token    思考 Token
+     */
+    void emitThinking(String nodeName, String token);
+
+    /**
+     * 流式推送单个文件的代码 Token。
+     *
+     * @param path  文件路径
+     * @param token 代码 Token
+     */
+    void emitFileToken(String path, String token);
+
+    /**
+     * 流式推送某个文件生成完成的信号。
+     *
+     * @param path 文件路径
+     */
+    void emitFileComplete(String path);
 }

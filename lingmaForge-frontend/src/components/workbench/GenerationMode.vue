@@ -51,6 +51,15 @@ const chatInput = ref('')
 const chatBodyRef = ref<HTMLDivElement | null>(null)
 const selectedFileKey = ref<string | null>(null)
 
+const expandedNodes = ref<Record<string, boolean>>({})
+function toggleNodeExpand(nodeName: string) {
+  expandedNodes.value[nodeName] = !expandedNodes.value[nodeName]
+}
+function isNodeExpanded(item: any) {
+  if (item.status === 'running') return true
+  return expandedNodes.value[item.nodeName] || false
+}
+
 /* ---------- 计算属性 ---------- */
 
 /** 当前项目名称 */
@@ -336,37 +345,58 @@ onMounted(() => {
                       <div
                         v-for="item in visibleChecklist"
                         :key="item.nodeName"
-                        class="checklist-item"
+                        class="checklist-card"
                         :class="{
                           completed: item.status === 'done',
                           active: item.status === 'running',
                         }"
                       >
-                        <div class="checklist-label">
-                          <svg
-                            v-if="item.status === 'done'"
-                            class="icon check"
-                          ><use href="#check" /></svg>
-                          <svg
-                            v-else-if="item.status === 'running'"
-                            class="icon loader-spin"
-                          ><use href="#refresh" /></svg>
-                          <svg
-                            v-else
-                            class="icon"
-                            style="opacity: 0.3"
-                          ><use href="#circle" /></svg>
-                          <span>{{ item.label }}</span>
+                        <div class="checklist-item">
+                          <div class="checklist-label">
+                            <svg
+                              v-if="item.status === 'done'"
+                              class="icon check"
+                            ><use href="#check" /></svg>
+                            <svg
+                              v-else-if="item.status === 'running'"
+                              class="icon loader-spin"
+                            ><use href="#refresh" /></svg>
+                            <svg
+                              v-else
+                              class="icon"
+                              style="opacity: 0.3"
+                            ><use href="#circle" /></svg>
+                            <span>{{ item.label }}</span>
+                          </div>
+                          <span
+                            class="checklist-value"
+                            :class="{
+                              completed: item.status === 'done',
+                              running: item.status === 'running',
+                            }"
+                          >
+                            {{ item.status === 'done' ? '已完成' : item.status === 'running' ? '进行中' : '等待中' }}
+                          </span>
                         </div>
-                        <span
-                          class="checklist-value"
-                          :class="{
-                            completed: item.status === 'done',
-                            running: item.status === 'running',
-                          }"
+
+                        <!-- 展开/折叠的思考过程卡片 -->
+                        <div
+                          v-if="item.thinking"
+                          class="thinking-collapsible-card"
+                          :class="{ collapsed: !isNodeExpanded(item) }"
+                          @click="item.status === 'done' && toggleNodeExpand(item.nodeName)"
                         >
-                          {{ item.status === 'done' ? '已完成' : item.status === 'running' ? '进行中' : '等待中' }}
-                        </span>
+                          <div class="thinking-header">
+                            <svg class="icon brain-icon" style="width: 12px; height: 12px; color: var(--blue)"><use href="#file-code" /></svg>
+                            <span>思考深度</span>
+                            <span class="collapse-icon">
+                              {{ !isNodeExpanded(item) ? '展开 +' : '收起 -' }}
+                            </span>
+                          </div>
+                          <div class="thinking-content" v-show="isNodeExpanded(item)">
+                            <pre class="thinking-text">{{ item.thinking }}</pre>
+                          </div>
+                        </div>
                       </div>
                     </div>
 
@@ -663,5 +693,77 @@ onMounted(() => {
 /* Iframe 占位 */
 .preview-iframe {
   background: #fff;
+}
+
+/* 步骤思考卡片精美样式 */
+.checklist-card {
+  margin-bottom: 8px;
+  border-radius: 8px;
+  border: 1px solid #eef2f6;
+  background: #fbfcfd;
+  transition: all 0.25s ease;
+  overflow: hidden;
+}
+.checklist-card.active {
+  border-color: rgba(0, 170, 179, 0.25);
+  box-shadow: 0 4px 12px rgba(0, 170, 179, 0.05);
+}
+.checklist-card.completed {
+  border-color: #e2f4f2;
+  background: #fdfefe;
+}
+
+.checklist-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 12px;
+}
+
+.thinking-collapsible-card {
+  margin: 0 12px 10px 12px;
+  padding: 8px 12px;
+  background: rgba(240, 244, 248, 0.45);
+  border-left: 2.5px solid #00aab3;
+  border-radius: 4px;
+  font-size: 11px;
+  color: #5a6e85;
+  transition: all 0.2s ease;
+}
+.thinking-collapsible-card.collapsed {
+  cursor: pointer;
+  border-left-color: #a0aec0;
+  background: rgba(240, 244, 248, 0.2);
+}
+.thinking-collapsible-card.collapsed:hover {
+  background: rgba(240, 244, 248, 0.55);
+}
+.thinking-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  margin-bottom: 4px;
+  user-select: none;
+}
+.thinking-collapsible-card.collapsed .thinking-header {
+  margin-bottom: 0;
+}
+.collapse-icon {
+  margin-left: auto;
+  font-size: 10px;
+  color: var(--muted);
+  font-weight: normal;
+}
+.thinking-content {
+  overflow-x: auto;
+  max-height: 250px;
+}
+.thinking-text {
+  margin: 0;
+  white-space: pre-wrap;
+  font-family: Menlo, Monaco, Consolas, Courier New, monospace;
+  font-size: 11px;
+  line-height: 1.5;
 }
 </style>

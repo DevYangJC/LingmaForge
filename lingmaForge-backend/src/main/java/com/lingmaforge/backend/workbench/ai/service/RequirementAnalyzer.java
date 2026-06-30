@@ -3,6 +3,7 @@ package com.lingmaforge.backend.workbench.ai.service;
 import com.lingmaforge.backend.common.model.RequirementSpec;
 
 import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 
 /**
  * 需求分析 Agent 的 AiServices 接口契约。
@@ -21,5 +22,6 @@ public interface RequirementAnalyzer {
      * @param userPrompt 用户原始需求
      * @return 结构化需求规格
      */
-    RequirementSpec analyze(@UserMessage String userPrompt);
+    @UserMessage("{{userPrompt}}")
+    RequirementSpec analyze(@V("userPrompt") String userPrompt);
 }

@@ -94,6 +94,7 @@ export const useWorkbenchStore = defineStore('workbench', () => {
       nodeName,
       label: stageLabels[nodeName],
       status: coreState.value.checklist[nodeName],
+      thinking: (coreState.value as any).nodeThinkings?.[nodeName] || '',
     })),
   )
 
@@ -131,7 +132,70 @@ export const useWorkbenchStore = defineStore('workbench', () => {
     return root
   })
 
+  // Token 流性能优化：批量节流缓冲区，防止高并发下主线程 DOM 渲染卡死与连接重置
+  let fileTokenBuffer: Record<string, string> = {}
+  let thinkingBuffer: Record<string, string> = {}
+  let flushTimer: any = null
+
+  function flushBuffer() {
+    if (flushTimer) {
+      clearTimeout(flushTimer)
+      flushTimer = null
+    }
+
+    const filesKeys = Object.keys(fileTokenBuffer)
+    const thinkingKeys = Object.keys(thinkingBuffer)
+    if (filesKeys.length === 0 && thinkingKeys.length === 0) return
+
+    // 1. 批量刷新文件内容
+    if (filesKeys.length > 0) {
+      const filesList = [...(coreState.value.files || [])]
+      for (const path of filesKeys) {
+        const token = fileTokenBuffer[path] || ''
+        const index = filesList.findIndex((f) => f.path === path)
+        if (index === -1) {
+          filesList.push({
+            id: path,
+            name: path.split('/').pop() || path,
+            path: path,
+            type: 'file',
+            language: getLanguageFromPath(path),
+            status: coreState.value.mode === 'generation' ? 'new' : 'modified',
+            content: token,
+          })
+        } else {
+          filesList[index] = {
+            ...filesList[index]!,
+            content: (filesList[index]?.content || '') + token,
+          }
+        }
+      }
+      coreState.value.files = filesList
+      fileTokenBuffer = {}
+    }
+
+    // 2. 批量刷新思考文本
+    if (thinkingKeys.length > 0) {
+      const thinkings = { ...(coreState.value as any).nodeThinkings }
+      for (const nodeName of thinkingKeys) {
+        thinkings[nodeName] = (thinkings[nodeName] || '') + (thinkingBuffer[nodeName] || '')
+      }
+      ;(coreState.value as any).nodeThinkings = thinkings
+      thinkingBuffer = {}
+    }
+  }
+
+  function scheduleBufferFlush() {
+    if (flushTimer !== null) return
+    flushTimer = setTimeout(flushBuffer, 100) // 100ms 节流频率（10次 DOM 渲染/秒，兼顾实时性与极佳性能）
+  }
+
   function closeEventSource() {
+    if (flushTimer) {
+      clearTimeout(flushTimer)
+      flushTimer = null
+    }
+    flushBuffer()
     if (eventSource) {
       eventSource.close()
       eventSource = null
@@ -163,6 +227,105 @@ export const useWorkbenchStore = defineStore('workbench', () => {
         applyMessage(msg)
       } catch (err) {
         console.error('解析 SSE message 失败:', err)
+      }
+    })
+
+    eventSource.addEventListener('node_start', (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        const nodeName = data.nodeName as PipelineNodeName
+        const title = data.title || ''
+        const updatedChecklist = { ...coreState.value.checklist }
+        const currentIndex = visiblePipelineNodes.indexOf(nodeName)
+        if (currentIndex !== -1) {
+          for (let i = 0; i < currentIndex; i++) {
+            const prevNode = visiblePipelineNodes[i]
+            if (prevNode && updatedChecklist[prevNode] !== 'done') {
+              updatedChecklist[prevNode] = 'done'
+            }
+          }
+        }
+        updatedChecklist[nodeName] = 'running'
+        coreState.value.checklist = updatedChecklist
+
+        const thinkings = { ...(coreState.value as any).nodeThinkings }
+        thinkings[nodeName] = title
+        ;(coreState.value as any).nodeThinkings = thinkings
+
+        coreState.value.logs.push({
+          id: `log-${Date.now()}`,
+          timestamp: Date.now(),
+          level: 'info',
+          source: 'system',
+          message: `步骤 [${stageLabels[nodeName] || nodeName}] 开始执行...`,
+        })
+      } catch (err) {
+        console.error('解析 node_start 失败:', err)
+      }
+    })
+
+    eventSource.addEventListener('node_end', (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        const nodeName = data.nodeName as PipelineNodeName
+        const updatedChecklist = { ...coreState.value.checklist }
+        updatedChecklist[nodeName] = 'done'
+        coreState.value.checklist = updatedChecklist
+
+        flushBuffer() // 在节点结束时，强行清空缓冲区，确保当前节点的内容完全渲染完毕
+        coreState.value.logs.push({
+          id: `log-${Date.now()}`,
+          timestamp: Date.now(),
+          level: 'success',
+          source: 'system',
+          message: `步骤 [${stageLabels[nodeName] || nodeName}] 执行完毕。`,
+        })
+      } catch (err) {
+        console.error('解析 node_end 失败:', err)
+      }
+    })
+
+    eventSource.addEventListener('thinking', (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        const nodeName = data.nodeName as PipelineNodeName
+        const token = data.token || ''
+        thinkingBuffer[nodeName] = (thinkingBuffer[nodeName] || '') + token
+        scheduleBufferFlush()
+      } catch (err) {
+        console.error('解析 thinking 失败:', err)
+      }
+    })
+
+    eventSource.addEventListener('file_token', (event) => {
+      try {
+        const fileData = JSON.parse(event.data)
+        const path = fileData.path
+        const token = fileData.token || ''
+        fileTokenBuffer[path] = (fileTokenBuffer[path] || '') + token
+
+        if (coreState.value.activeFilePath !== path) {
+          coreState.value.activeFilePath = path
+        }
+        scheduleBufferFlush()
+      } catch (err) {
+        console.error('解析 file_token 失败:', err)
+      }
+    })
+
+    eventSource.addEventListener('file_complete', (event) => {
+      try {
+        const fileData = JSON.parse(event.data)
+        const path = fileData.path
+        coreState.value.logs.push({
+          id: `log-${Date.now()}`,
+          timestamp: Date.now(),
+          level: 'success',
+          source: 'build',
+          message: `文件 [${path.split('/').pop() || path}] 生成落盘成功。`,
+        })
+      } catch (err) {
+        console.error('解析 file_complete 失败:', err)
       }
     })
 
@@ -287,6 +450,77 @@ export const useWorkbenchStore = defineStore('workbench', () => {
         applyMessage(msg)
       } catch (err) {
         console.error('解析迭代 SSE message 失败:', err)
+      }
+    })
+
+    eventSource.addEventListener('node_start', (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        const nodeName = data.nodeName as PipelineNodeName
+        const updatedChecklist = { ...coreState.value.checklist }
+        updatedChecklist[nodeName] = 'running'
+        coreState.value.checklist = updatedChecklist
+      } catch (err) {
+        console.error('解析 node_start 失败:', err)
+      }
+    })
+
+    eventSource.addEventListener('node_end', (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        const nodeName = data.nodeName as PipelineNodeName
+        const updatedChecklist = { ...coreState.value.checklist }
+        updatedChecklist[nodeName] = 'done'
+        coreState.value.checklist = updatedChecklist
+        flushBuffer() // 在节点结束时，强行清空缓冲区，确保当前节点的内容完全渲染完毕
+      } catch (err) {
+        console.error('解析 node_end 失败:', err)
+      }
+    })
+
+    eventSource.addEventListener('thinking', (event) => {
+      try {
+        const data = JSON.parse(event.data)
+        const nodeName = data.nodeName as PipelineNodeName
+        const token = data.token || ''
+        thinkingBuffer[nodeName] = (thinkingBuffer[nodeName] || '') + token
+        scheduleBufferFlush()
+      } catch (err) {
+        console.error('解析 thinking 失败:', err)
+      }
+    })
+
+    eventSource.addEventListener('file_token', (event) => {
+      try {
+        const fileData = JSON.parse(event.data)
+        const path = fileData.path
+        const token = fileData.token || ''
+        fileTokenBuffer[path] = (fileTokenBuffer[path] || '') + token
+
+        if (coreState.value.activeFilePath !== path) {
+          coreState.value.activeFilePath = path
+        }
+        scheduleBufferFlush()
+      } catch (err) {
+        console.error('解析 file_token 失败:', err)
+      }
+    })
+
+    eventSource.addEventListener('file_complete', (event) => {
+      try {
+        const fileData = JSON.parse(event.data)
+        const path = fileData.path
+        const file = coreState.value.files.find((f) => f.path === path)
+        if (file) {
+          coreState.value.editorMode = 'diff'
+          coreState.value.diffFile = {
+            path,
+            original: coreState.value.snapshots[path] || '',
+            modified: file.content || '',
+          }
+        }
+      } catch (err) {
+        console.error('解析 file_complete 失败:', err)
       }
     })
 

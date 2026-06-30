@@ -2,6 +2,15 @@ package com.lingmaforge.backend.workbench.ai.factory;
 
 import java.util.Map;
 
+import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.model.chat.ChatRequestOptions;
+import dev.langchain4j.model.chat.StreamingChatModel;
+import dev.langchain4j.model.chat.request.ChatRequest;
+import dev.langchain4j.model.chat.response.ChatResponse;
+import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
+import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
+import dev.langchain4j.model.anthropic.AnthropicStreamingChatModel;
+import com.lingmaforge.backend.infra.config.LingmaModelsProperties.ModelConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -58,6 +67,7 @@ public class AgentFactory {
     /** Agent 配置（哪个 Agent 用哪个模型）。 */
     private final Map<String, AgentModelConfig> agentConfigs;
 
+    private final LingmaModelsProperties properties;
     private final PromptTemplateLoader promptLoader;
     private final FileTools fileTools;
     private final ProjectContextTools projectContextTools;
@@ -70,6 +80,7 @@ public class AgentFactory {
             ProjectContextTools projectContextTools,
             IterationTools iterationTools) {
         this.chatModels = chatModels;
+        this.properties = properties;
         this.agentConfigs = properties.agents() != null ? properties.agents() : Map.of();
         this.promptLoader = promptLoader;
         this.fileTools = fileTools;
@@ -80,16 +91,18 @@ public class AgentFactory {
     // ======================== 模型解析 ========================
 
     /**
-     * 根据 Agent 名从配置中解析对应的 ChatModel。
+    /**
+     * 根据 Agent 类型从配置中解析对应的 ChatModel。
      *
-     * <p>查找链路：agentName → lingma.agents.{agentName}.model → lingma.models.{modelName} → ChatModel Bean。
+     * <p>查找链路：agentType.getType() → lingma.agents.{agentName}.model → lingma.models.{modelName} → ChatModel Bean。
      * 若配置缺失，回退到第一个可用模型。</p>
      *
-     * @param agentName Agent 标识（如 requirement-analysis）
+     * @param agentType Agent 类型
      * @return 对应 ChatModel，永不返回 null
      * @throws IllegalStateException 当没有任何可用模型时
      */
-    private ChatModel resolveModel(String agentName) {
+    private ChatModel resolveModel(AgentType agentType) {
+        String agentName = agentType.getType();
         AgentModelConfig agentConfig = agentConfigs.get(agentName);
         if (agentConfig != null && agentConfig.model() != null) {
             ChatModel model = chatModels.get(agentConfig.model());
@@ -113,6 +126,85 @@ public class AgentFactory {
         return new NoOpModel();
     }
 
+    /**
+     * 根据 Agent 类型从配置中解析对应的 StreamingChatModel。
+     *
+     * @param agentType Agent 类型
+     * @return 对应 StreamingChatModel，永不返回 null
+     */
+    private StreamingChatModel resolveStreamingModel(AgentType agentType) {
+        String agentName = agentType.getType();
+        AgentModelConfig agentConfig = agentConfigs.get(agentName);
+        if (agentConfig != null && agentConfig.model() != null) {
+            String modelAlias = agentConfig.model();
+            ModelConfig config = properties.models().get(modelAlias);
+            if (config != null) {
+                String apiKey = config.apiKey();
+                if (apiKey != null && !apiKey.isBlank() && !apiKey.startsWith("$")) {
+                    String provider = config.provider() == null ? "openai" : config.provider().toLowerCase();
+                    boolean logReq = config.logRequests() != null && config.logRequests();
+                    boolean logResp = config.logResponses() != null && config.logResponses();
+                    int retries = config.maxRetries() != null ? config.maxRetries() : 2;
+
+                    if ("anthropic".equals(provider)) {
+                        log.info("创建流式 Anthropic 模型 [{}]: model={}", modelAlias, config.modelName());
+                        return AnthropicStreamingChatModel.builder()
+                                .apiKey(apiKey)
+                                .modelName(config.modelName())
+                                .logRequests(logReq)
+                                .logResponses(logResp)
+                                .build();
+                    } else if ("openai".equals(provider)) {
+                        log.info("创建流式 OpenAI 兼容模型 [{}]: baseUrl={}, model={}", modelAlias, config.baseUrl(), config.modelName());
+                        return OpenAiStreamingChatModel.builder()
+                                .baseUrl(config.baseUrl())
+                                .apiKey(apiKey)
+                                .modelName(config.modelName())
+                                .logRequests(logReq)
+                                .logResponses(logResp)
+                                .build();
+                    }
+                }
+            }
+        }
+
+        // 回退逻辑
+        if (properties.models() != null) {
+            for (Map.Entry<String, ModelConfig> entry : properties.models().entrySet()) {
+                ModelConfig config = entry.getValue();
+                String apiKey = config.apiKey();
+                if (apiKey != null && !apiKey.isBlank() && !apiKey.startsWith("$")) {
+                    String provider = config.provider() == null ? "openai" : config.provider().toLowerCase();
+                    boolean logReq = config.logRequests() != null && config.logRequests();
+                    boolean logResp = config.logResponses() != null && config.logResponses();
+                    int retries = config.maxRetries() != null ? config.maxRetries() : 2;
+
+                    if ("anthropic".equals(provider)) {
+                        log.warn("Agent [{}] 未配置或配置的流式模型不可用，回退至第一个可用流式模型 [{}]", agentName, entry.getKey());
+                        return AnthropicStreamingChatModel.builder()
+                                .apiKey(apiKey)
+                                .modelName(config.modelName())
+                                .logRequests(logReq)
+                                .logResponses(logResp)
+                                .build();
+                    } else if ("openai".equals(provider)) {
+                        log.warn("Agent [{}] 未配置或配置的流式模型不可用，回退至第一个可用流式模型 [{}]", agentName, entry.getKey());
+                        return OpenAiStreamingChatModel.builder()
+                                .baseUrl(config.baseUrl())
+                                .apiKey(apiKey)
+                                .modelName(config.modelName())
+                                .logRequests(logReq)
+                                .logResponses(logResp)
+                                .build();
+                    }
+                }
+            }
+        }
+
+        log.error("❌ Agent [{}] 没有任何可用的流式 AI 模型！", agentName);
+        return new NoOpStreamingModel();
+    }
+
     // ======================== Agent 创建 ========================
 
     /**
@@ -122,8 +214,8 @@ public class AgentFactory {
      */
     public RequirementAnalyzer createRequirementAnalyzer() {
         return AiServices.builder(RequirementAnalyzer.class)
-                .chatModel(resolveModel("requirement-analysis"))
-                .systemMessageProvider(id -> promptLoader.loadSystemPrompt("requirement-analysis"))
+                .chatModel(resolveModel(AgentType.REQUIREMENT_ANALYSIS))
+                .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.REQUIREMENT_ANALYSIS.getType()))
                 .build();
     }
 
@@ -134,8 +226,8 @@ public class AgentFactory {
      */
     public ExecutionPlanner createExecutionPlanner() {
         return AiServices.builder(ExecutionPlanner.class)
-                .chatModel(resolveModel("execution-planning"))
-                .systemMessageProvider(id -> promptLoader.loadSystemPrompt("execution-planning"))
+                .chatModel(resolveModel(AgentType.EXECUTION_PLANNING))
+                .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.EXECUTION_PLANNING.getType()))
                 .build();
     }
 
@@ -148,10 +240,8 @@ public class AgentFactory {
      */
     public CodeGenAgent createCodeGenAgent() {
         return AiServices.builder(CodeGenAgent.class)
-                .chatModel(resolveModel("code-generation"))
-                .systemMessageProvider(id -> promptLoader.loadSystemPrompt("code-generation"))
-                .tools(fileTools, projectContextTools)
-                .maxToolCallingRoundTrips(MAX_TOOL_ROUND_TRIPS)
+                .streamingChatModel(resolveStreamingModel(AgentType.CODE_GENERATION))
+                .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.CODE_GENERATION.getType()))
                 .build();
     }
 
@@ -162,8 +252,8 @@ public class AgentFactory {
      */
     public StyleOptimizationAgent createStyleOptimizationAgent() {
         return AiServices.builder(StyleOptimizationAgent.class)
-                .chatModel(resolveModel("style-optimization"))
-                .systemMessageProvider(id -> promptLoader.loadSystemPrompt("style-optimization"))
+                .chatModel(resolveModel(AgentType.STYLE_OPTIMIZATION))
+                .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.STYLE_OPTIMIZATION.getType()))
                 .tools(fileTools, projectContextTools)
                 .maxToolCallingRoundTrips(MAX_TOOL_ROUND_TRIPS)
                 .build();
@@ -176,8 +266,8 @@ public class AgentFactory {
      */
     public IterationAgent createIterationAgent() {
         return AiServices.builder(IterationAgent.class)
-                .chatModel(resolveModel("iteration-modification"))
-                .systemMessageProvider(id -> promptLoader.loadSystemPrompt("iteration-modification"))
+                .chatModel(resolveModel(AgentType.ITERATION_MODIFICATION))
+                .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.ITERATION_MODIFICATION.getType()))
                 .tools(fileTools, projectContextTools, iterationTools)
                 .maxToolCallingRoundTrips(MAX_TOOL_ROUND_TRIPS)
                 .build();
@@ -200,33 +290,33 @@ public class AgentFactory {
         }
 
         @Override
-        public dev.langchain4j.model.chat.response.ChatResponse chat(
-                dev.langchain4j.model.chat.request.ChatRequest request) {
+        public ChatResponse chat(
+                ChatRequest request) {
             throw new IllegalStateException(ERROR_MSG);
         }
 
         @Override
-        public dev.langchain4j.model.chat.response.ChatResponse chat(
-                dev.langchain4j.model.chat.request.ChatRequest request,
-                dev.langchain4j.model.chat.ChatRequestOptions options) {
+        public ChatResponse chat(
+                ChatRequest request,
+                ChatRequestOptions options) {
             throw new IllegalStateException(ERROR_MSG);
         }
 
         @Override
-        public dev.langchain4j.model.chat.response.ChatResponse doChat(
-                dev.langchain4j.model.chat.request.ChatRequest request) {
+        public ChatResponse doChat(
+                ChatRequest request) {
             throw new IllegalStateException(ERROR_MSG);
         }
 
         @Override
-        public dev.langchain4j.model.chat.response.ChatResponse chat(
-                dev.langchain4j.data.message.ChatMessage... messages) {
+        public ChatResponse chat(
+                ChatMessage... messages) {
             throw new IllegalStateException(ERROR_MSG);
         }
 
         @Override
-        public dev.langchain4j.model.chat.response.ChatResponse chat(
-                java.util.List<dev.langchain4j.data.message.ChatMessage> messages) {
+        public ChatResponse chat(
+                java.util.List<ChatMessage> messages) {
             throw new IllegalStateException(ERROR_MSG);
         }
 
@@ -248,6 +338,24 @@ public class AgentFactory {
         @Override
         public java.util.Set<dev.langchain4j.model.chat.Capability> supportedCapabilities() {
             return java.util.Set.of();
+        }
+    }
+
+    /**
+     * 无 API Key 时的占位流式模型，让 Spring 上下文能正常加载。
+     */
+    private static class NoOpStreamingModel implements StreamingChatModel {
+        private static final String ERROR_MSG =
+                "AI 模型未配置！请设置环境变量（如 DEEPSEEK_API_KEY、ANTHROPIC_API_KEY）后重启服务。";
+
+        @Override
+        public void chat(ChatRequest request, StreamingChatResponseHandler handler) {
+            throw new IllegalStateException(ERROR_MSG);
+        }
+
+        @Override
+        public void chat(ChatRequest request, ChatRequestOptions options, StreamingChatResponseHandler handler) {
+            throw new IllegalStateException(ERROR_MSG);
         }
     }
 }

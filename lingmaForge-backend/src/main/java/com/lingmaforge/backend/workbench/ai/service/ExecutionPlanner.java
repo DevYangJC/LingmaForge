@@ -3,6 +3,7 @@ package com.lingmaforge.backend.workbench.ai.service;
 import com.lingmaforge.backend.common.model.PlanResult;
 
 import dev.langchain4j.service.UserMessage;
+import dev.langchain4j.service.V;
 
 /**
  * 执行规划 Agent 的 AiServices 接口契约。
@@ -17,5 +18,6 @@ public interface ExecutionPlanner {
      * @param requirementJson 需求规格的文本描述
      * @return 执行规划结果
      */
-    PlanResult plan(@UserMessage String requirementJson);
+    @UserMessage("{{requirementJson}}")
+    PlanResult plan(@V("requirementJson") String requirementJson);
 }

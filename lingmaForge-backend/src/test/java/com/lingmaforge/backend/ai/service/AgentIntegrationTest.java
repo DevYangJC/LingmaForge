@@ -248,7 +248,16 @@ class AgentIntegrationTest {
             log.info("================================================================");
 
             Instant start = Instant.now();
-            String result = agent.generate(userPrompt);
+            dev.langchain4j.service.TokenStream tokenStream = agent.generate(userPrompt);
+            StringBuilder sb = new StringBuilder();
+            java.util.concurrent.CompletableFuture<String> future = new java.util.concurrent.CompletableFuture<>();
+            tokenStream.onPartialResponse(sb::append)
+                    .onCompleteResponse(chatResponse -> future.complete(sb.toString()))
+                    .onError(future::completeExceptionally)
+                    .start();
+            String result = future.join();
+            // 手动落盘写入数据库，保持与原用例等价
+            projectFileService.writeFile(projectId, "src/App.tsx", result, "new");
             Duration elapsed = Duration.between(start, Instant.now());
 
             var allFiles = projectFileMapper.selectList(
@@ -378,5 +387,10 @@ class AgentIntegrationTest {
                 List<FileModification> mods) {
             log.info("[emitter] 修改推送: {} ({}条修改)", n, mods != null ? mods.size() : 0);
         }
+        @Override public void emitNodeStart(String nodeName, String title) {}
+        @Override public void emitNodeEnd(String nodeName) {}
+        @Override public void emitThinking(String nodeName, String token) {}
+        @Override public void emitFileToken(String path, String token) {}
+        @Override public void emitFileComplete(String path) {}
     }
 }
