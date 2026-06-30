@@ -1,5 +1,7 @@
 package com.lingmaforge.backend.common.model;
 
+import java.io.Serializable;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -16,5 +18,7 @@ public record IterateRequest(
 
         @NotBlank(message = "修改指令不能为空")
         @Size(max = 2000, message = "修改指令不能超过 2000 个字符")
-        String prompt) {
+        String prompt) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 }

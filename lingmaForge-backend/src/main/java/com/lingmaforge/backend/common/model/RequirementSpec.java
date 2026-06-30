@@ -1,5 +1,6 @@
 package com.lingmaforge.backend.common.model;
 
+import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
@@ -19,7 +20,9 @@ public record RequirementSpec(
         List<PageSpec> pages,
         List<ApiSpec> apis,
         List<String> features,
-        StyleSpec style) {
+        StyleSpec style) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /**
      * 页面规格。
@@ -29,7 +32,10 @@ public record RequirementSpec(
      * @param description 页面描述
      * @param components  页面包含的组件列表
      */
-    public record PageSpec(String name, String route, String description, List<String> components) {
+    public record PageSpec(String name, String route, String description, List<String> components)
+            implements Serializable {
+
+        private static final long serialVersionUID = 1L;
     }
 
     /**
@@ -48,7 +54,9 @@ public record RequirementSpec(
             String method,
             String description,
             Map<String, Object> requestShape,
-            Map<String, Object> responseShape) {
+            Map<String, Object> responseShape) implements Serializable {
+
+        private static final long serialVersionUID = 1L;
     }
 
     /**
@@ -59,6 +67,9 @@ public record RequirementSpec(
      * @param layout    布局模式（single-page / multi-page / dashboard）
      * @param fontFamily 字体族
      */
-    public record StyleSpec(String theme, String themeName, String layout, String fontFamily) {
+    public record StyleSpec(String theme, String themeName, String layout, String fontFamily)
+            implements Serializable {
+
+        private static final long serialVersionUID = 1L;
     }
 }

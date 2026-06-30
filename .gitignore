@@ -72,6 +72,8 @@ cypress/screenshots/
 .codex/
 .agents/
 
+workspace/
+
 # Generated local outputs
 outputs/
 output/

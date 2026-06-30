@@ -1,5 +1,6 @@
 package com.lingmaforge.backend.common.model;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -12,5 +13,7 @@ import java.util.List;
 public record ProjectContext(
         String framework,
         List<String> filePaths,
-        List<String> dependencies) {
+        List<String> dependencies) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 }

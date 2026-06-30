@@ -1,5 +1,7 @@
 package com.lingmaforge.backend.common.model;
 
+import java.io.Serializable;
+
 import jakarta.validation.constraints.NotBlank;
 
 /**
@@ -12,5 +14,7 @@ public record UpdateFileRequest(
         @NotBlank(message = "文件路径不能为空")
         String path,
 
-        String content) {
+        String content) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 }

@@ -1,5 +1,9 @@
 package com.lingmaforge.backend.workbench.ai.observer;
 
+import java.util.List;
+
+import com.lingmaforge.backend.common.model.FileModification;
+
 /**
  * 生成流水线事件发射器契约。
  *
@@ -47,4 +51,14 @@ public interface GenerationStreamEmitter {
      * @param message 错误信息
      */
     void error(String message);
+
+    /**
+     * 推送迭代修改事件，含文件变更前后内容用于前端 diff 展示。
+     *
+     * @param nodeName      节点名称
+     * @param text          增量文本
+     * @param textType      文本类型
+     * @param modifications 文件修改列表
+     */
+    void emitModification(String nodeName, String text, String textType, List<FileModification> modifications);
 }

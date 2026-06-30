@@ -4,6 +4,7 @@ import java.util.List;
 
 import jakarta.validation.Valid;
 
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,6 +21,7 @@ import com.lingmaforge.backend.common.model.CreateProjectRequest;
 import com.lingmaforge.backend.common.model.FileNode;
 import com.lingmaforge.backend.common.model.ProjectResponse;
 import com.lingmaforge.backend.common.model.UpdateFileRequest;
+import com.lingmaforge.backend.common.model.UpdateProjectRequest;
 import com.lingmaforge.backend.workbench.service.ProjectFileService;
 import com.lingmaforge.backend.workbench.service.ProjectService;
 
@@ -66,6 +68,47 @@ public class ProjectController {
     }
 
     /**
+     * 查询单个项目。
+     *
+     * @param id 项目 ID
+     * @return 项目信息
+     */
+    @GetMapping("/{id}")
+    public Result<ProjectResponse> getProject(@PathVariable Long id) {
+        var project = projectService.getById(id);
+        if (project == null) {
+            throw new BusinessException(ResultCode.PROJECT_NOT_FOUND);
+        }
+        return Result.ok(ProjectResponse.from(project));
+    }
+
+    /**
+     * 更新项目元数据。
+     *
+     * @param id      项目 ID
+     * @param request 更新请求，仅非 null 字段会被更新
+     * @return 更新后的项目信息
+     */
+    @PutMapping("/{id}")
+    public Result<ProjectResponse> updateProject(@PathVariable Long id,
+            @Valid @RequestBody UpdateProjectRequest request) {
+        return Result.ok(ProjectResponse.from(projectService.updateProject(id, request)));
+    }
+
+    /**
+     * 删除项目（级联删除文件、聊天记录、任务记录与工作区目录）。
+     *
+     * @param id 项目 ID
+     * @return 操作结果
+     */
+    @DeleteMapping("/{id}")
+    public Result<Void> deleteProject(@PathVariable Long id) {
+        ensureProjectExists(id);
+        projectService.deleteProject(id);
+        return Result.ok(null);
+    }
+
+    /**
      * 查询项目文件树。
      *
      * @param id 项目 ID
@@ -105,6 +148,20 @@ public class ProjectController {
     public Result<Void> updateFile(@PathVariable Long id, @Valid @RequestBody UpdateFileRequest request) {
         ensureProjectExists(id);
         projectFileService.writeFile(id, request.path(), request.content(), "modified");
+        return Result.ok(null);
+    }
+
+    /**
+     * 删除项目文件（磁盘 + 数据库双删）。
+     *
+     * @param id   项目 ID
+     * @param path 文件相对路径
+     * @return 操作结果
+     */
+    @DeleteMapping("/{id}/file")
+    public Result<Void> deleteFile(@PathVariable Long id, @RequestParam String path) {
+        ensureProjectExists(id);
+        projectFileService.deleteFile(id, path);
         return Result.ok(null);
     }
 

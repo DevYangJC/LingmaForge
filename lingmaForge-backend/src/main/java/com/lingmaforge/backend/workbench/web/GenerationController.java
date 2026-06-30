@@ -12,10 +12,14 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.lingmaforge.backend.common.api.Result;
+import com.lingmaforge.backend.common.exception.BusinessException;
+import com.lingmaforge.backend.common.exception.ResultCode;
 import com.lingmaforge.backend.common.model.CreateGenerationRequest;
 import com.lingmaforge.backend.common.model.GenerationTaskResponse;
+import com.lingmaforge.backend.common.model.GenerationTaskStatusResponse;
 import com.lingmaforge.backend.common.model.IterateRequest;
 import com.lingmaforge.backend.workbench.service.GenerationService;
+import com.lingmaforge.backend.workbench.service.GenerationTaskService;
 
 /**
  * 代码生成相关的 REST / SSE 接口。
@@ -27,6 +31,7 @@ import com.lingmaforge.backend.workbench.service.GenerationService;
  *   <li>POST /api/generation/iterate —— 创建迭代修改任务</li>
  *   <li>GET /api/stream/iteration/{taskId} —— SSE 流式推送迭代进度</li>
  *   <li>DELETE /api/generation/{taskId}/stop —— 停止生成</li>
+ *   <li>GET /api/generation/{taskId}/status —— 查询任务状态</li>
  * </ul>
  * SSE 端点直接返回 {@link SseEmitter}，不包裹 {@link Result}。</p>
  */
@@ -35,9 +40,12 @@ import com.lingmaforge.backend.workbench.service.GenerationService;
 public class GenerationController {
 
     private final GenerationService generationService;
+    private final GenerationTaskService generationTaskService;
 
-    public GenerationController(GenerationService generationService) {
+    public GenerationController(GenerationService generationService,
+            GenerationTaskService generationTaskService) {
         this.generationService = generationService;
+        this.generationTaskService = generationTaskService;
     }
 
     /**
@@ -96,5 +104,20 @@ public class GenerationController {
     public Result<Void> stop(@PathVariable String taskId) {
         generationService.stopGeneration(taskId);
         return Result.ok(null);
+    }
+
+    /**
+     * 查询生成任务状态。
+     *
+     * @param taskId 任务 ID
+     * @return 任务状态信息
+     */
+    @GetMapping("/generation/{taskId}/status")
+    public Result<GenerationTaskStatusResponse> getStatus(@PathVariable String taskId) {
+        var task = generationTaskService.getByTaskId(taskId);
+        if (task == null) {
+            throw new BusinessException(ResultCode.TASK_NOT_FOUND);
+        }
+        return Result.ok(GenerationTaskStatusResponse.from(task));
     }
 }

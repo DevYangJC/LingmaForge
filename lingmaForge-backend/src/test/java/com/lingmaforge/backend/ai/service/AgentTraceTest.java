@@ -1,7 +1,9 @@
 package com.lingmaforge.backend.ai.service;
 
+import java.util.List;
 import java.util.UUID;
 
+import com.lingmaforge.backend.common.model.FileModification;
 import com.lingmaforge.backend.workbench.ai.factory.AgentFactory;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationContext;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter;
@@ -129,5 +131,7 @@ class AgentTraceTest {
         @Override public void emitLog(String t) {}
         @Override public void complete(String u, Integer po, Integer bt) {}
         @Override public void error(String m) {}
+        @Override public void emitModification(String n, String t, String tt,
+                List<FileModification> mods) {}
     }
 }

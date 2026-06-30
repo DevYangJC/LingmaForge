@@ -1,5 +1,6 @@
 package com.lingmaforge.backend.common.model;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -16,5 +17,7 @@ public record PlanResult(
         String packageManager,
         List<FilePlan> files,
         List<String> generationOrder,
-        List<String> buildCommands) {
+        List<String> buildCommands) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 }

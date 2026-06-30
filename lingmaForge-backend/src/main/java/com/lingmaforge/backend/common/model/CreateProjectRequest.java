@@ -1,5 +1,7 @@
 package com.lingmaforge.backend.common.model;
 
+import java.io.Serializable;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
@@ -20,5 +22,7 @@ public record CreateProjectRequest(
         String description,
 
         @Pattern(regexp = "react-vite-ts|vue-vite-ts", message = "框架类型仅支持 react-vite-ts 或 vue-vite-ts")
-        String framework) {
+        String framework) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 }

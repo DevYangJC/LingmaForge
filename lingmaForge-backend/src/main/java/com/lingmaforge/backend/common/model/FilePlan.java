@@ -1,5 +1,6 @@
 package com.lingmaforge.backend.common.model;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
@@ -16,5 +17,7 @@ public record FilePlan(
         String purpose,
         String fileType,
         List<String> dependencies,
-        boolean required) {
+        boolean required) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 }

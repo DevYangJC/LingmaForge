@@ -3,11 +3,13 @@ package com.lingmaforge.backend.workbench.service;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 
+import com.lingmaforge.backend.common.model.FileModification;
 import com.lingmaforge.backend.common.model.SandboxInfo;
 import org.bsc.langgraph4j.NodeOutput;
 import org.slf4j.Logger;
@@ -363,6 +365,19 @@ public class GenerationService {
                     "nodeName", "error",
                     "text", message,
                     "error", true));
+        }
+
+        @Override
+        public void emitModification(String nodeName, String text, String textType,
+                List<FileModification> modifications) {
+            Map<String, Object> data = new HashMap<>();
+            data.put("threadId", taskId);
+            data.put("nodeName", nodeName);
+            data.put("text", text);
+            data.put("textType", textType);
+            data.put("error", false);
+            data.put("modifications", modifications);
+            send("message", data);
         }
 
         private void send(String event, Object data) {

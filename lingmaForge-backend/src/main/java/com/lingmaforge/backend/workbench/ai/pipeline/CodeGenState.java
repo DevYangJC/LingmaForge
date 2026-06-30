@@ -58,6 +58,10 @@ public class CodeGenState extends AgentState {
         super(data);
     }
 
+    private static <T> Channel<T> nullableChannel() {
+        return Channels.base((java.util.function.Supplier<T>) null);
+    }
+
     /**
      * 声明所有状态字段的 Channel 定义。
      *
@@ -65,19 +69,19 @@ public class CodeGenState extends AgentState {
      */
     public static Map<String, Channel<?>> channels() {
         return Map.ofEntries(
-                Map.entry(PROMPT, Channels.base(() -> null)),
-                Map.entry(PROJECT_ID, Channels.base(() -> null)),
-                Map.entry(TASK_ID, Channels.base(() -> null)),
-                Map.entry(ANALYSIS_RESULT, Channels.base(() -> null)),
-                Map.entry(PLAN_RESULT, Channels.base(() -> null)),
+                Map.entry(PROMPT, nullableChannel()),
+                Map.entry(PROJECT_ID, nullableChannel()),
+                Map.entry(TASK_ID, nullableChannel()),
+                Map.entry(ANALYSIS_RESULT, nullableChannel()),
+                Map.entry(PLAN_RESULT, nullableChannel()),
                 Map.entry(CURRENT_FILE_INDEX, Channels.base(() -> 0)),
                 // 已生成文件：追加合并，每轮代码生成追加一个文件
                 Map.entry(GENERATED_FILES, Channels.appender(ArrayList::new)),
                 Map.entry(BUILD_STATUS, Channels.base(() -> BuildStatus.PENDING)),
-                Map.entry(BUILD_ERROR, Channels.base(() -> null)),
+                Map.entry(BUILD_ERROR, nullableChannel()),
                 Map.entry(BUILD_TIME, Channels.base(() -> 0)),
                 Map.entry(RETRY_COUNT, Channels.base(() -> 0)),
-                Map.entry(PREVIEW_URL, Channels.base(() -> null)),
+                Map.entry(PREVIEW_URL, nullableChannel()),
                 Map.entry(PREVIEW_PORT, Channels.base(() -> 0)));
     }
 

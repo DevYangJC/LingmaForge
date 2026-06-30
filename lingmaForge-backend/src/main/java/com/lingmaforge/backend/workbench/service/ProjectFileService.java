@@ -67,4 +67,12 @@ public interface ProjectFileService {
      * @return 文件路径列表
      */
     List<String> listFilePaths(Long projectId);
+
+    /**
+     * 删除单个文件（磁盘 + 数据库双删）。
+     *
+     * @param projectId 项目 ID
+     * @param path      文件相对路径
+     */
+    void deleteFile(Long projectId, String path);
 }

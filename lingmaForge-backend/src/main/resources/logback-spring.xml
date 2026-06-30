@@ -70,7 +70,7 @@
     </appender>
 
     <!-- ===== 开发环境：控制台 + 文件 + 详细日志 ===== -->
-    <springProfile name="local,dev,default">
+    <springProfile name="local,dev,default,test">
         <logger name="com.lingmaforge.backend" level="DEBUG"/>
         <logger name="dev.langchain4j" level="INFO"/>
         <logger name="org.bsc.langgraph4j" level="INFO"/>

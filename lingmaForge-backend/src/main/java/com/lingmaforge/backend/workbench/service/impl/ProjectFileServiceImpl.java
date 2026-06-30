@@ -136,6 +136,22 @@ public class ProjectFileServiceImpl implements ProjectFileService {
         return files.stream().map(ProjectFileEntity::getPath).toList();
     }
 
+    @Override
+    public void deleteFile(Long projectId, String path) {
+        // 1. 删除磁盘文件
+        Path fullPath = resolveWorkspacePath(projectId, path);
+        try {
+            Files.deleteIfExists(fullPath);
+        } catch (IOException e) {
+            log.warn("删除磁盘文件失败: projectId={}, path={}", projectId, path, e);
+        }
+
+        // 2. 删除数据库记录
+        projectFileMapper.delete(new LambdaQueryWrapper<ProjectFileEntity>()
+                .eq(ProjectFileEntity::getProjectId, projectId)
+                .eq(ProjectFileEntity::getPath, path));
+    }
+
     private Path resolveWorkspacePath(Long projectId, String relativePath) {
         Path workspace = projectService.getProjectWorkspace(projectId);
         Path fullPath = workspace.resolve(relativePath).normalize();

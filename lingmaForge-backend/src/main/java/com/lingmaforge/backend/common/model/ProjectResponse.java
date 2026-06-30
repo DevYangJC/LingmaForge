@@ -1,5 +1,6 @@
 package com.lingmaforge.backend.common.model;
 
+import java.io.Serializable;
 import java.time.LocalDateTime;
 
 import com.lingmaforge.backend.workbench.entity.ProjectEntity;
@@ -26,7 +27,9 @@ public record ProjectResponse(
         String lastBuildStatus,
         String sandboxUrl,
         LocalDateTime createdAt,
-        LocalDateTime updatedAt) {
+        LocalDateTime updatedAt) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 
     /**
      * 由实体转换为视图对象。

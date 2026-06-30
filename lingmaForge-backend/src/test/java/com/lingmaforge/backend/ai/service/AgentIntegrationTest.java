@@ -16,6 +16,7 @@ import com.lingmaforge.backend.workbench.ai.service.RequirementAnalyzer;
 import com.lingmaforge.backend.workbench.entity.ProjectFileEntity;
 import com.lingmaforge.backend.workbench.mapper.ProjectFileMapper;
 import com.lingmaforge.backend.common.model.CreateProjectRequest;
+import com.lingmaforge.backend.common.model.FileModification;
 import com.lingmaforge.backend.common.model.PlanResult;
 import com.lingmaforge.backend.common.model.RequirementSpec;
 import com.lingmaforge.backend.workbench.service.ProjectFileService;
@@ -372,6 +373,10 @@ class AgentIntegrationTest {
         }
         @Override public void error(String m) {
             log.error("[emitter] 错误: {}", m);
+        }
+        @Override public void emitModification(String n, String t, String tt,
+                List<FileModification> mods) {
+            log.info("[emitter] 修改推送: {} ({}条修改)", n, mods != null ? mods.size() : 0);
         }
     }
 }

@@ -1,5 +1,7 @@
 package com.lingmaforge.backend.common.model;
 
+import java.io.Serializable;
+
 /**
  * 发送给客户端的图节点进度载荷，通过 SSE 推送给前端展示 Agent 工作流进度。
  *
@@ -12,5 +14,7 @@ public record GraphNodeResponse(
         String threadId,
         String nodeName,
         String text,
-        String textType) {
+        String textType) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 }

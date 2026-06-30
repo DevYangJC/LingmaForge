@@ -6,6 +6,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.lingmaforge.backend.workbench.entity.ProjectEntity;
 import com.lingmaforge.backend.common.model.CreateProjectRequest;
 import com.lingmaforge.backend.common.model.ProjectContext;
+import com.lingmaforge.backend.common.model.UpdateProjectRequest;
 
 /**
  * 项目领域服务契约。
@@ -46,4 +47,20 @@ public interface ProjectService extends IService<ProjectEntity> {
      * @param sandboxUrl     沙箱预览 URL
      */
     void updateBuildResult(Long projectId, String buildStatus, String sandboxUrl);
+
+    /**
+     * 更新项目元数据（名称、描述）。
+     *
+     * @param projectId 项目 ID
+     * @param request   更新请求，仅非 null 字段会被更新
+     * @return 更新后的项目实体
+     */
+    ProjectEntity updateProject(Long projectId, UpdateProjectRequest request);
+
+    /**
+     * 级联删除项目：文件（磁盘 + 数据库）、聊天消息、任务记录、工作区目录、项目实体。
+     *
+     * @param projectId 项目 ID
+     */
+    void deleteProject(Long projectId);
 }

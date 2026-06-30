@@ -1,5 +1,7 @@
 package com.lingmaforge.backend.common.model;
 
+import java.io.Serializable;
+
 /**
  * 文件增量修改补丁。
  *
@@ -9,5 +11,7 @@ package com.lingmaforge.backend.common.model;
  * @param old  期望的旧行内容（用于校验，匹配后才替换）
  * @param newContent 新行内容
  */
-public record Patch(int line, String old, String newContent) {
+public record Patch(int line, String old, String newContent) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 }

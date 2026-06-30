@@ -1,5 +1,7 @@
 package com.lingmaforge.backend.common.model;
 
+import java.io.Serializable;
+
 /**
  * 生成文件的内容与元数据。
  *
@@ -12,5 +14,7 @@ public record GeneratedFile(
         String path,
         String content,
         String checksum,
-        boolean generated) {
+        boolean generated) implements Serializable {
+
+    private static final long serialVersionUID = 1L;
 }
