@@ -16,8 +16,8 @@ import com.lingmaforge.backend.workbench.ai.observer.GenerationContext;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter;
 import com.lingmaforge.backend.common.model.Patch;
 import com.lingmaforge.backend.workbench.ai.tool.FileTools;
-import com.lingmaforge.backend.workbench.ai.tool.IterationTools;
 import com.lingmaforge.backend.workbench.ai.tool.ProjectContextTools;
+import com.lingmaforge.backend.workbench.ai.plan.PlanTracker;
 import com.lingmaforge.backend.workbench.service.ProjectFileService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,26 +44,24 @@ class ToolUnitTest {
 
     @Mock private ProjectFileService projectFileService;
     @Mock private GenerationStreamEmitter emitter;
+    @Mock private PlanTracker planTracker;
 
     private FileTools fileTools;
     private ProjectContextTools projectContextTools;
-    private IterationTools iterationTools;
 
     private static final Long PROJECT_ID = 1L;
     private static final String TASK_ID = "test-task";
 
     @BeforeEach
     void setUp() {
-        fileTools = new FileTools(projectFileService);
+        fileTools = new FileTools(projectFileService, planTracker);
         projectContextTools = new ProjectContextTools(null, projectFileService);
-        iterationTools = new IterationTools(projectFileService);
         GenerationContext.set(PROJECT_ID, TASK_ID, emitter);
 
         log.info("========== 工具测试初始化 ==========");
         log.info("  PROJECT_ID: {}, TASK_ID: {}", PROJECT_ID, TASK_ID);
         log.info("  被测工具: FileTools (writeFile/patchFile/validateCode)");
         log.info("           ProjectContextTools (readFileContext)");
-        log.info("           IterationTools (searchCode)");
         log.info("  模拟组件: ProjectFileService + GenerationStreamEmitter (Mockito)");
         log.info("======================================");
     }
@@ -290,46 +288,6 @@ class ToolUnitTest {
             assertThat(result).contains("src/App.tsx");
             assertThat(result).contains("尚未生成");
             log.info("  [OK] 不存在的文件正确标注");
-        }
-    }
-
-    @Nested
-    @DisplayName("searchCode 工具")
-    class SearchCodeTests {
-
-        @Test
-        @DisplayName("找到关键词时返回匹配行及上下文")
-        void shouldReturnMatchingLinesWithContext() {
-            String fileContent = "line 1\nline 2\nconst price = 49;\nline 4\nline 5\n";
-            when(projectFileService.readFile(PROJECT_ID, "src/api/mock.ts")).thenReturn(fileContent);
-
-            log.info("--- searchCode 测试 ---");
-            log.info("  关键词: 'price', 搜索范围: [src/api/mock.ts]");
-
-            String result = iterationTools.searchCode("price", List.of("src/api/mock.ts"));
-
-            log.info("  输出:\n{}", result.lines().map(l -> "    " + l).reduce("", (a, b) -> a + "\n" + b));
-            assertThat(result).contains("文件: src/api/mock.ts");
-            assertThat(result).contains("行 3");
-            assertThat(result).contains(">>> const price = 49;");
-            assertThat(result).contains("line 2");
-            assertThat(result).contains("line 4");
-            log.info("  [OK] 找到1处匹配(行3)，含+/-2行上下文");
-        }
-
-        @Test
-        @DisplayName("未找到关键词时返回提示")
-        void shouldReturnNotFoundMessage() {
-            when(projectFileService.readFile(PROJECT_ID, "src/App.tsx")).thenReturn("export default App;");
-
-            log.info("--- searchCode 未找到测试 ---");
-            log.info("  关键词: 'nonexistent', 搜索范围: [src/App.tsx]");
-
-            String result = iterationTools.searchCode("nonexistent", List.of("src/App.tsx"));
-
-            log.info("  输出: {}", result);
-            assertThat(result).contains("未找到包含关键词的代码");
-            log.info("  [OK] 关键词未找到时正确返回提示");
         }
     }
 }

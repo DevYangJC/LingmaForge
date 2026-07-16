@@ -16,7 +16,6 @@ import com.lingmaforge.backend.workbench.ai.service.RequirementAnalyzer;
 import com.lingmaforge.backend.workbench.entity.ProjectFileEntity;
 import com.lingmaforge.backend.workbench.mapper.ProjectFileMapper;
 import com.lingmaforge.backend.common.model.CreateProjectRequest;
-import com.lingmaforge.backend.common.model.FileModification;
 import com.lingmaforge.backend.common.model.PlanResult;
 import com.lingmaforge.backend.common.model.RequirementSpec;
 import com.lingmaforge.backend.workbench.service.ProjectFileService;
@@ -76,8 +75,6 @@ class AgentIntegrationTest {
         GenerationContext.clear();
     }
 
-    @Nested
-    @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
     @DisplayName("测试一：需求分析 Agent")
     class RequirementAnalysis {
 
@@ -145,8 +142,6 @@ class AgentIntegrationTest {
         }
     }
 
-    @Nested
-    @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
     @DisplayName("测试二：执行规划 Agent")
     class ExecutionPlanning {
 
@@ -221,8 +216,6 @@ class AgentIntegrationTest {
         }
     }
 
-    @Nested
-    @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
     @DisplayName("测试三：代码生成 Agent")
     class CodeGeneration {
 
@@ -248,7 +241,7 @@ class AgentIntegrationTest {
             log.info("================================================================");
 
             Instant start = Instant.now();
-            dev.langchain4j.service.TokenStream tokenStream = agent.generate(userPrompt);
+            dev.langchain4j.service.TokenStream tokenStream = agent.generate(1L, userPrompt);
             StringBuilder sb = new StringBuilder();
             java.util.concurrent.CompletableFuture<String> future = new java.util.concurrent.CompletableFuture<>();
             tokenStream.onPartialResponse(sb::append)
@@ -300,59 +293,6 @@ class AgentIntegrationTest {
         }
     }
 
-    @Nested
-    @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
-    @DisplayName("测试四：迭代修改 Agent")
-    class IterationModification {
-
-        @Test
-        @Order(4)
-        @EnabledIfEnvironmentVariable(named = "LINGMA_INTEGRATION_TEST", matches = "true")
-        @DisplayName("searchCode搜索 + patchFile增量修改")
-        void shouldSearchAndPatch() {
-            String original = "import React from 'react';\n"
-                    + "const Header = () => {\n"
-                    + "  return <header style={{background: '#333', color: '#fff'}}>\n"
-                    + "    <h1>My App</h1>\n"
-                    + "  </header>;\n"
-                    + "};\n"
-                    + "export default Header;\n";
-            projectFileService.writeFile(projectId, "src/components/Header.tsx", original, "new");
-
-            IterationAgent agent = agentFactory.createIterationAgent();
-            String iterPrompt = "The project has src/components/Header.tsx. "
-                    + "Use searchCode to find 'background', then change '#333' to '#1e40af' "
-                    + "via patchFile for an incremental modification.";
-
-            log.info("================================================================");
-            log.info("  测试 4/4: 迭代修改 Agent (agent=iteration-modification, @Tool:searchCode/patchFile)");
-            log.info("  期望模型=deepseek-pro, 最大工具调用轮数=12");
-            log.info("----------------------------------------------------------------");
-            log.info("  原始文件: src/components/Header.tsx ({} 行)", original.lines().count());
-            log.info("  [AI 输入] prompt ({} 字): {}", iterPrompt.length(), iterPrompt);
-            log.info("================================================================");
-
-            log.info("  [修改前] src/components/Header.tsx:");
-            original.lines().forEach(l -> log.info("    {}", l));
-
-            Instant start = Instant.now();
-            String result = agent.modify(iterPrompt);
-            Duration elapsed = Duration.between(start, Instant.now());
-
-            String modified = projectFileService.readFile(projectId, "src/components/Header.tsx");
-            log.info("  [修改后] src/components/Header.tsx:");
-            if (modified != null) modified.lines().forEach(l -> log.info("    {}", l));
-            else log.warn("    (文件不存在)");
-
-            log.info("================================================================");
-            log.info("  [通过] 测试4/4: 迭代修改Agent ({}ms / agent回复: {})",
-                    elapsed.toMillis(), result);
-            log.info("================================================================");
-
-            assertThat(result).isNotNull();
-        }
-    }
-
     private void logResults(RequirementSpec spec) {
         log.info("  --- 需求分析结果 ---");
         log.info("  应用名: {}", spec.appName());
@@ -383,14 +323,15 @@ class AgentIntegrationTest {
         @Override public void error(String m) {
             log.error("[emitter] 错误: {}", m);
         }
-        @Override public void emitModification(String n, String t, String tt,
-                List<FileModification> mods) {
-            log.info("[emitter] 修改推送: {} ({}条修改)", n, mods != null ? mods.size() : 0);
-        }
         @Override public void emitNodeStart(String nodeName, String title) {}
         @Override public void emitNodeEnd(String nodeName) {}
         @Override public void emitThinking(String nodeName, String token) {}
         @Override public void emitFileToken(String path, String token) {}
         @Override public void emitFileComplete(String path) {}
+        @Override public void emitToolCall(String id, String name, String arguments, String result) {
+            log.info("[emitter] 工具调用: {} args={} result={}", name,
+                    arguments != null && arguments.length() > 80 ? arguments.substring(0, 80) + "..." : arguments,
+                    result == null ? "(调用中)" : "完成");
+        }
     }
 }

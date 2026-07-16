@@ -1,0 +1,10 @@
+用户修改请求：
+{{prompt}}
+
+项目上下文：
+{{projectContext}}
+
+意图识别结果：
+{{iterationIntent}}
+
+请基于现有 Vue 模板和已加载文件输出最小可执行修改计划。不要把基础模板文件放入 changes；如果发现需要改依赖或构建配置，请写入 risks。

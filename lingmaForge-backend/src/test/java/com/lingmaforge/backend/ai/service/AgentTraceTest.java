@@ -3,7 +3,6 @@ package com.lingmaforge.backend.ai.service;
 import java.util.List;
 import java.util.UUID;
 
-import com.lingmaforge.backend.common.model.FileModification;
 import com.lingmaforge.backend.workbench.ai.factory.AgentFactory;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationContext;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter;
@@ -77,7 +76,7 @@ class AgentTraceTest {
                 + "Call writeFile tool directly to write the complete code.";
 
         log.info("================================================================");
-        log.info("  第1步: 你的代码调用 agent.generate(prompt)");
+        log.info("  第1步: 你的代码调用 agent.generate(1L, prompt)");
         log.info("----------------------------------------------------------------");
         log.info("  prompt 内容（你给Agent的输入）: {}", prompt);
         log.info("================================================================");
@@ -93,7 +92,7 @@ class AgentTraceTest {
         log.info("================================================================");
 
         CodeGenAgent agent = agentFactory.createCodeGenAgent();
-        dev.langchain4j.service.TokenStream tokenStream = agent.generate(prompt);
+        dev.langchain4j.service.TokenStream tokenStream = agent.generate(1L, prompt);
         StringBuilder sb = new StringBuilder();
         java.util.concurrent.CompletableFuture<String> future = new java.util.concurrent.CompletableFuture<>();
         tokenStream.onPartialResponse(sb::append)
@@ -140,12 +139,11 @@ class AgentTraceTest {
         @Override public void emitLog(String t) {}
         @Override public void complete(String u, Integer po, Integer bt) {}
         @Override public void error(String m) {}
-        @Override public void emitModification(String n, String t, String tt,
-                List<FileModification> mods) {}
         @Override public void emitNodeStart(String nodeName, String title) {}
         @Override public void emitNodeEnd(String nodeName) {}
         @Override public void emitThinking(String nodeName, String token) {}
         @Override public void emitFileToken(String path, String token) {}
         @Override public void emitFileComplete(String path) {}
+        @Override public void emitToolCall(String id, String name, String arguments, String result) {}
     }
 }

@@ -10,7 +10,11 @@ import org.bsc.langgraph4j.state.Channel;
 import org.bsc.langgraph4j.state.Channels;
 
 import com.lingmaforge.backend.common.model.BuildStatus;
+import com.lingmaforge.backend.common.model.BuildErrorAnalysis;
+import com.lingmaforge.backend.common.model.FileChangeResult;
 import com.lingmaforge.backend.common.model.GeneratedFile;
+import com.lingmaforge.backend.common.model.IterationIntent;
+import com.lingmaforge.backend.common.model.ModificationPlan;
 import com.lingmaforge.backend.common.model.PlanResult;
 import com.lingmaforge.backend.common.model.RequirementSpec;
 
@@ -53,6 +57,19 @@ public class CodeGenState extends AgentState {
     public static final String PREVIEW_URL = "previewUrl";
     /** 预览端口。 */
     public static final String PREVIEW_PORT = "previewPort";
+    /** 本轮迭代修改的用户指令。 */
+    public static final String ITERATION_PROMPT = "iterationPrompt";
+    /** 本轮迭代修改的意图识别结果。 */
+    public static final String ITERATION_INTENT = "iterationIntent";
+    /** 本轮迭代使用的项目上下文摘要。 */
+    public static final String ITERATION_CONTEXT = "iterationContext";
+    /** 本轮迭代修改的结构化计划。 */
+    public static final String MODIFICATION_PLAN = "modificationPlan";
+    /** 本轮迭代实际修改的文件结果列表。 */
+    public static final String MODIFIED_FILES = "modifiedFiles";
+/** 构建失败后的错误分析结果。 */
+    public static final String BUILD_ERROR_ANALYSIS = "buildErrorAnalysis";
+
 
     public CodeGenState(Map<String, Object> data) {
         super(data);
@@ -81,6 +98,12 @@ public class CodeGenState extends AgentState {
                 Map.entry(BUILD_ERROR, nullableChannel()),
                 Map.entry(BUILD_TIME, Channels.base(() -> 0)),
                 Map.entry(RETRY_COUNT, Channels.base(() -> 0)),
+                Map.entry(ITERATION_PROMPT, nullableChannel()),
+                Map.entry(ITERATION_INTENT, nullableChannel()),
+                Map.entry(ITERATION_CONTEXT, nullableChannel()),
+                Map.entry(MODIFICATION_PLAN, nullableChannel()),
+Map.entry(MODIFIED_FILES, Channels.appender(ArrayList::new)),
+                Map.entry(BUILD_ERROR_ANALYSIS, nullableChannel()),
                 Map.entry(PREVIEW_URL, nullableChannel()),
                 Map.entry(PREVIEW_PORT, Channels.base(() -> 0)));
     }
@@ -148,5 +171,35 @@ public class CodeGenState extends AgentState {
     /** 读取预览端口。 */
     public Optional<Integer> previewPort() {
         return value(PREVIEW_PORT);
+    }
+
+    /** 读取本轮迭代修改的用户指令。 */
+    public Optional<String> iterationPrompt() {
+        return value(ITERATION_PROMPT);
+    }
+
+    /** 读取本轮迭代修改的意图识别结果。 */
+    public Optional<IterationIntent> iterationIntent() {
+        return value(ITERATION_INTENT);
+    }
+
+    /** 读取本轮迭代使用的项目上下文摘要。 */
+    public Optional<String> iterationContext() {
+        return value(ITERATION_CONTEXT);
+    }
+
+    /** 读取本轮迭代修改的结构化计划。 */
+    public Optional<ModificationPlan> modificationPlan() {
+        return value(MODIFICATION_PLAN);
+    }
+
+    /** 读取本轮迭代实际修改的文件结果列表。 */
+    public Optional<List<FileChangeResult>> modifiedFiles() {
+        return value(MODIFIED_FILES);
+    }
+
+/** 读取构建失败后的错误分析结果。 */
+    public Optional<BuildErrorAnalysis> buildErrorAnalysis() {
+        return value(BUILD_ERROR_ANALYSIS);
     }
 }

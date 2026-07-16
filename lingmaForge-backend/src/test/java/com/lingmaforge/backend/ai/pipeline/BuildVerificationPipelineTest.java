@@ -25,7 +25,6 @@ import com.lingmaforge.backend.workbench.ai.service.IterationAgent;
 import com.lingmaforge.backend.workbench.ai.service.RequirementAnalyzer;
 import com.lingmaforge.backend.workbench.ai.service.StyleOptimizationAgent;
 import com.lingmaforge.backend.workbench.ai.tool.FileTools;
-import com.lingmaforge.backend.workbench.ai.tool.IterationTools;
 import com.lingmaforge.backend.workbench.ai.tool.ProjectContextTools;
 import com.lingmaforge.backend.workbench.service.*;
 import com.lingmaforge.backend.common.model.*;
@@ -77,7 +76,6 @@ class BuildVerificationPipelineTest {
     @Mock private PromptTemplateLoader promptLoader;
     @Mock private FileTools fileTools;
     @Mock private ProjectContextTools projectContextTools;
-    @Mock private IterationTools iterationTools;
     @Mock private ProjectFileService projectFileService;
     @Mock private CodeGenAgent mockCodeGenAgent;
 

@@ -1,9 +1,5 @@
 package com.lingmaforge.backend.workbench.ai.observer;
 
-import java.util.List;
-
-import com.lingmaforge.backend.common.model.FileModification;
-
 /**
  * 生成流水线事件发射器契约。
  *
@@ -53,16 +49,6 @@ public interface GenerationStreamEmitter {
     void error(String message);
 
     /**
-     * 推送迭代修改事件，含文件变更前后内容用于前端 diff 展示。
-     *
-     * @param nodeName      节点名称
-     * @param text          增量文本
-     * @param textType      文本类型
-     * @param modifications 文件修改列表
-     */
-    void emitModification(String nodeName, String text, String textType, List<FileModification> modifications);
-
-    /**
      * 推送节点开始事件。
      *
      * @param nodeName 节点名称
@@ -84,6 +70,20 @@ public interface GenerationStreamEmitter {
      * @param token    思考 Token
      */
     void emitThinking(String nodeName, String token);
+
+    /**
+     * 推送工具调用事件（统一封封装中的 tool_call 事件类型）。
+     *
+     * <p>当 Agent 通过 @Tool 方法执行文件写入、补丁、上下文读取、代码搜索等动作时，
+     * 在工具执行前后推送该事件，使前端实时可见"模型正在调用什么工具、用了什么参数、得到什么结果"，
+     * 从而复刻 zero-code 中 TokenStream 的 beforeToolExecution / onToolExecuted 可视化能力。</p>
+     *
+     * @param id        工具调用 ID（可传 null）：用于关联请求与结果
+     * @param name      工具名称（如 writeFile / patchFile / readFileContext）
+     * @param arguments 工具参数（JSON 字符串，过长可截断）
+     * @param result    工具执行结果文本；为 null 表示"调用中"阶段，非空表示"已完成"阶段
+     */
+    void emitToolCall(String id, String name, String arguments, String result);
 
     /**
      * 流式推送单个文件的代码 Token。

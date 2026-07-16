@@ -25,7 +25,6 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lingmaforge.backend.common.exception.BusinessException;
@@ -35,8 +34,12 @@ import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamRegistry;
 import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenPipeline;
 import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenState;
+import com.lingmaforge.backend.workbench.ai.pipeline.IterationPipeline;
 import com.lingmaforge.backend.workbench.entity.GenerationTaskEntity;
 import com.lingmaforge.backend.workbench.mapper.ChatMessageMapper;
+
+import org.springframework.http.codec.ServerSentEvent;
+import reactor.core.publisher.Flux;
 
 /**
  * GenerationService 核心流推送接口的单元测试。
@@ -49,6 +52,7 @@ class GenerationServiceTest {
     private static final Logger log = LoggerFactory.getLogger(GenerationServiceTest.class);
 
     @Mock private CodeGenPipeline pipeline;
+    @Mock private IterationPipeline iterationPipeline;
     @Mock private AgentFactory agentFactory;
     @Mock private ProjectService projectService;
     @Mock private GenerationTaskService taskService;
@@ -67,7 +71,7 @@ class GenerationServiceTest {
     @BeforeEach
     void setUp() {
         generationService = new GenerationService(
-                pipeline, agentFactory, projectService, taskService,
+                pipeline, iterationPipeline, agentFactory, projectService, taskService,
                 chatMessageMapper, streamRegistry, promptLoader,
                 objectMapper, executor
         );
@@ -126,11 +130,14 @@ class GenerationServiceTest {
         log.info("用户需求Prompt: {}", prompt);
 
         // 执行流生成
-        SseEmitter sseEmitter = generationService.streamGeneration(taskId);
+reactor.core.publisher.Flux<org.springframework.http.codec.ServerSentEvent<String>> sseFlux =
+                generationService.streamGeneration(taskId);
 
-        // 验证 SseEmitter 非空
-        assertThat(sseEmitter).isNotNull();
-        log.info("1. SseEmitter 实例已成功创建并返回");
+        // 验证 SSE 响应式 Flux 非空
+        assertThat(sseFlux).isNotNull();
+        // 订阅以触发内部执行（Flux.create 是懒执行）
+        sseFlux.subscribe();
+        log.info("1. SSE 响应式 Flux 已成功创建并订阅");
 
         // 验证数据库状态更新
         verify(taskService).updateStage(taskId, "requirement_analysis");
@@ -180,10 +187,13 @@ class GenerationServiceTest {
         log.info("输入任务ID: {}", taskId);
 
         // 执行流生成
-        SseEmitter sseEmitter = generationService.streamGeneration(taskId);
+reactor.core.publisher.Flux<org.springframework.http.codec.ServerSentEvent<String>> sseEmitter =
+                generationService.streamGeneration(taskId);
 
-        // 验证 SseEmitter 非空
+        // 验证 SSE 响应式 Flux 非空
         assertThat(sseEmitter).isNotNull();
+        // 订阅以触发内部执行（Flux.create 是懒执行）
+        sseEmitter.subscribe();
 
         // 验证失败时的数据库更新及注销流程
         verify(taskService).updateStage(taskId, "requirement_analysis");

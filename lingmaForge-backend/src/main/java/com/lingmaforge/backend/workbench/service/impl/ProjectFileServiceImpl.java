@@ -212,10 +212,12 @@ public class ProjectFileServiceImpl implements ProjectFileService {
         if (path.contains("/components/")) {
             return "component";
         }
-        if (path.contains("/pages/")) {
+        if (path.contains("/pages/") || path.contains("/views/")) {
             return "page";
         }
-        if (path.endsWith("App.tsx") || path.endsWith("main.tsx") || path.endsWith(".html")) {
+        if (path.endsWith("App.tsx") || path.endsWith("main.tsx")
+                || path.endsWith("App.vue") || path.endsWith("main.ts")
+                || path.endsWith(".html")) {
             return "entry";
         }
         return "other";
@@ -224,6 +226,9 @@ public class ProjectFileServiceImpl implements ProjectFileService {
     private String inferLanguage(String fileName) {
         if (fileName.endsWith(".tsx")) {
             return "typescript";
+        }
+        if (fileName.endsWith(".vue")) {
+            return "vue";
         }
         if (fileName.endsWith(".ts")) {
             return "typescript";

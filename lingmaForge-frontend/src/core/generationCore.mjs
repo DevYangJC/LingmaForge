@@ -5,6 +5,11 @@ export const pipelineNodeNames = [
   'style_optimization',
   'build_verification',
   'preview_deploy',
+  'iteration_intent_analysis',
+  'project_context_load',
+  'modification_planning',
+  'code_patch',
+  'build_error_analysis',
   'iteration_intent',
   'code_locating',
   'modification_generation',
@@ -17,11 +22,23 @@ const stageLabels = {
   style_optimization: '样式优化',
   build_verification: '构建验证',
   preview_deploy: '预览部署',
+  iteration_intent_analysis: '意图分析',
+  project_context_load: '上下文读取',
+  modification_planning: '修改规划',
+  code_patch: '代码应用',
+  build_error_analysis: '错误分析',
   iteration_intent: '迭代理解',
   code_locating: '代码定位',
   modification_generation: '修改生成',
 }
 
+const iterationPipelineNodeSet = new Set([
+  'iteration_intent_analysis',
+  'project_context_load',
+  'modification_planning',
+  'code_patch',
+  'build_error_analysis',
+])
 let idSeed = 0
 
 function nextId(prefix) {
@@ -46,6 +63,7 @@ function cloneState(state) {
     logs: [...state.logs],
     snapshots: { ...state.snapshots },
     nodeThinkings: { ...state.nodeThinkings },
+    visibleNodeNames: [...(state.visibleNodeNames || [])],
   }
 }
 
@@ -110,6 +128,7 @@ export function createInitialWorkbenchState(taskId = '', prompt = '') {
     ],
     snapshots: {},
     nodeThinkings: {},
+    visibleNodeNames: [],
   }
 }
 
@@ -161,6 +180,30 @@ function upsertFile(files, nextFile) {
   return files.map((file, i) => (i === index ? merged : file))
 }
 
+function revealNode(state, nodeName) {
+  if (!nodeName) return
+  if (!state.visibleNodeNames) state.visibleNodeNames = []
+  if (!state.visibleNodeNames.includes(nodeName)) {
+    state.visibleNodeNames.push(nodeName)
+  }
+}
+
+export function reducePipelineNodeStart(currentState, data) {
+  const state = cloneState(currentState)
+  const nodeName = data?.nodeName
+  revealNode(state, nodeName)
+  if (nodeName) {
+    state.checklist[nodeName] = 'running'
+    const title = data?.title || ''
+    if (title) {
+      state.nodeThinkings = {
+        ...state.nodeThinkings,
+        [nodeName]: title,
+      }
+    }
+  }
+  return state
+}
 function appendAssistantMessage(state, msg) {
   state.chatMessages.push({
     id: nextId('msg'),
@@ -214,7 +257,10 @@ export function reduceGenerationMessage(currentState, msg) {
 
   const state = cloneState(currentState)
   state.isGenerating = true
-  state.mode = 'generation'
+  revealNode(state, msg.nodeName)
+  if (!iterationPipelineNodeSet.has(msg.nodeName)) {
+    state.mode = 'generation'
+  }
   if (state.checklist[msg.nodeName] !== 'running') {
     state.checklist[msg.nodeName] = 'done'
   }

@@ -8,7 +8,11 @@ import java.util.List;
 import java.util.Map;
 
 import com.lingmaforge.backend.common.model.BuildStatus;
+import com.lingmaforge.backend.common.model.BuildErrorAnalysis;
+import com.lingmaforge.backend.common.model.FileChangeResult;
 import com.lingmaforge.backend.common.model.GeneratedFile;
+import com.lingmaforge.backend.common.model.IterationIntent;
+import com.lingmaforge.backend.common.model.ModificationPlan;
 import com.lingmaforge.backend.common.model.PlanResult;
 import com.lingmaforge.backend.common.model.RequirementSpec;
 import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenState;
@@ -246,5 +250,39 @@ class CodeGenStateTest {
             log.info("  重试2/2 -> BUILD_STATUS=SUCCESS, BUILD_TIME=7s");
             log.info("[OK] 构建失败 -> 回退修复 -> 最终成功 (耗时7秒)");
         }
+    }
+
+    @Test
+    @DisplayName("迭代修改字段可以通过黑板读写")
+    void shouldReadIterationFields() {
+        IterationIntent intent = new IterationIntent("feature", "增加登录按钮", List.of("src/App.vue"), true);
+        ModificationPlan plan = new ModificationPlan("更新首页", List.of(), List.of("需要重新构建"));
+        FileChangeResult change = new FileChangeResult("src/App.vue", "update", true, "已更新");
+BuildErrorAnalysis analysis = new BuildErrorAnalysis("syntax", "模板语法错误", List.of("src/App.vue"), "修复标签闭合");
+
+        assertThat(CodeGenState.channels()).containsKeys(
+                CodeGenState.ITERATION_PROMPT,
+                CodeGenState.ITERATION_INTENT,
+                CodeGenState.ITERATION_CONTEXT,
+                CodeGenState.MODIFICATION_PLAN,
+                CodeGenState.MODIFIED_FILES,
+                CodeGenState.BUILD_ERROR_ANALYSIS);
+
+        Map<String, Object> data = new HashMap<>();
+        data.put(CodeGenState.ITERATION_PROMPT, "把首页加一个登录按钮");
+        data.put(CodeGenState.ITERATION_INTENT, intent);
+        data.put(CodeGenState.ITERATION_CONTEXT, "framework=vue-vite-ts");
+        data.put(CodeGenState.MODIFICATION_PLAN, plan);
+        data.put(CodeGenState.MODIFIED_FILES, List.of(change));
+data.put(CodeGenState.BUILD_ERROR_ANALYSIS, analysis);
+
+        CodeGenState iterationState = new CodeGenState(data);
+
+        assertThat(iterationState.iterationPrompt()).hasValue("把首页加一个登录按钮");
+        assertThat(iterationState.iterationIntent()).hasValue(intent);
+        assertThat(iterationState.iterationContext()).hasValue("framework=vue-vite-ts");
+        assertThat(iterationState.modificationPlan()).hasValue(plan);
+        assertThat(iterationState.modifiedFiles()).hasValue(List.of(change));
+assertThat(iterationState.buildErrorAnalysis()).hasValue(analysis);
     }
 }

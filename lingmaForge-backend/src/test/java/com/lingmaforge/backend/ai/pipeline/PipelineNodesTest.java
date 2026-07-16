@@ -15,7 +15,6 @@ import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenPipeline;
 import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenState;
 import com.lingmaforge.backend.workbench.ai.service.*;
 import com.lingmaforge.backend.workbench.ai.tool.FileTools;
-import com.lingmaforge.backend.workbench.ai.tool.IterationTools;
 import com.lingmaforge.backend.workbench.ai.tool.ProjectContextTools;
 import com.lingmaforge.backend.workbench.service.*;
 import com.lingmaforge.backend.common.model.*;
@@ -55,7 +54,12 @@ class PipelineNodesTest {
     @Mock private PromptTemplateLoader promptLoader;
     @Mock private FileTools fileTools;
     @Mock private ProjectContextTools projectContextTools;
-    @Mock private IterationTools iterationTools;
+    @Mock private com.lingmaforge.backend.workbench.ai.tool.UpdatePlanTool updatePlanTool;
+    @Mock private com.lingmaforge.backend.workbench.ai.tool.ExitTool exitTool;
+    @Mock private com.lingmaforge.backend.workbench.ai.plan.PlanTracker planTracker;
+    @Mock private com.lingmaforge.backend.workbench.ai.stream.StreamingBridge streamingBridge;
+    @Mock private com.lingmaforge.backend.workbench.ai.memory.ContextCompactionService compactionService;
+    @Mock private java.util.function.Function<String, dev.langchain4j.memory.chat.MessageWindowChatMemory> chatMemoryProvider;
     @Mock private ProjectFileService projectFileService;
     @Mock private SandboxService sandboxService;
     @Mock private ProjectService projectService;
@@ -159,7 +163,8 @@ class PipelineNodesTest {
         LingmaModelsProperties.ModelConfig mockModelCfg =
                 new LingmaModelsProperties.ModelConfig(
                         "http://localhost/v1", "sk-mock", "mock-model",
-                        "openai", false, false, 2);
+                        "openai", false, false, 2,
+                        null, null, null, null);
         LingmaModelsProperties props = new LingmaModelsProperties(
                 Map.of("mock-model", mockModelCfg),
                 Map.of(
@@ -174,7 +179,7 @@ class PipelineNodesTest {
                         "iteration-modification",
                         new LingmaModelsProperties.AgentModelConfig("mock-model")));
         return new AgentFactory(Map.of("mock-model", chatModel), props, promptLoader,
-                fileTools, projectContextTools, iterationTools) {
+                fileTools, projectContextTools, updatePlanTool, exitTool, planTracker, chatMemoryProvider) {
             @Override
             public CodeGenAgent createCodeGenAgent() {
                 return mockCodeGenAgent;
@@ -396,9 +401,9 @@ class PipelineNodesTest {
                             .aiMessage(AiMessage.from(VALID_PLAN_RESULT_JSON)).build());
 
             // Stub CodeGenAgent generate calls to return progressive tokens using StubTokenStream
-            lenient().when(mockCodeGenAgent.generate(anyString()))
+            lenient().when(mockCodeGenAgent.generate(anyLong(), anyString()))
                     .thenAnswer(inv -> {
-                        String prompt = inv.getArgument(0);
+                        String prompt = inv.getArgument(1);
                         if (prompt.contains("package.json")) {
                             return new StubTokenStream("{\n  \"name\": \"subscription-store\"\n}");
                         } else if (prompt.contains("App.tsx")) {
@@ -409,7 +414,7 @@ class PipelineNodesTest {
                     });
 
             lenient().when(fileTools.writeFile(anyString(), anyString()))
-                    .thenAnswer(inv -> "Success: " + inv.getArgument(0));
+                    .thenAnswer(inv -> "Success: " + inv.getArgument(1));
             lenient().when(projectContextTools.readProjectContext())
                     .thenReturn("框架: react-vite-ts\n文件: []");
             lenient().when(projectContextTools.readFileContext(any()))
@@ -417,8 +422,8 @@ class PipelineNodesTest {
         }
 
         @Test
-        @DisplayName("正常流程：遍历 filePlan 所有文件，逐文件生成")
-        void shouldGenerateAllFiles() {
+        @DisplayName("正常流程：跳过模板基础文件，只生成业务文件")
+        void shouldGenerateBusinessFilesAndSkipTemplateFiles() {
             mockCodeGenAgentCalls();
 
             AgentFactory factory = agentFactory();
@@ -428,7 +433,7 @@ class PipelineNodesTest {
                     new ExecutionPlanningNode(factory, streamRegistry);
             CodeGenerationNode genNode = new CodeGenerationNode(
                     factory, streamRegistry, promptLoader, projectFileService,
-                    new com.fasterxml.jackson.databind.ObjectMapper(), Runnable::run);
+                    new com.fasterxml.jackson.databind.ObjectMapper(), Runnable::run, streamingBridge, compactionService, chatMemoryProvider);
 
             // 需求分析
             CodeGenState state = baseState(null);
@@ -445,10 +450,11 @@ class PipelineNodesTest {
             Map<String, Object> result = genNode.execute(state);
 
             assertThat(result).containsKey(CodeGenState.BUILD_ERROR);
-            // 验证 3 个文件均调用了 Agent.generate()
+            // package.json 属于模板基础文件，应该由模板初始化流程维护，不再调用模型生成。
             verify(chatModel, times(2)).chat(any(ChatRequest.class));
-            verify(mockCodeGenAgent, times(3)).generate(anyString());
-            log.info("[OK] 代码生成节点遍历3个文件完成");
+            verify(mockCodeGenAgent, times(2)).generate(anyLong(), anyString());
+            verify(projectFileService, never()).writeFile(eq(1L), eq("package.json"), anyString(), anyString());
+            log.info("[OK] 代码生成节点跳过模板基础文件，仅生成业务文件");
         }
 
         @Test
@@ -463,7 +469,7 @@ class PipelineNodesTest {
                     new ExecutionPlanningNode(factory, streamRegistry);
             CodeGenerationNode genNode = new CodeGenerationNode(
                     factory, streamRegistry, promptLoader, projectFileService,
-                    new com.fasterxml.jackson.databind.ObjectMapper(), Runnable::run);
+                    new com.fasterxml.jackson.databind.ObjectMapper(), Runnable::run, streamingBridge, compactionService, chatMemoryProvider);
 
             CodeGenState state = baseState(null);
             Map<String, Object> ar = analysisNode.execute(state);
@@ -486,7 +492,7 @@ class PipelineNodesTest {
 
             // BUILD_ERROR 应被清空
             assertThat(result.get(CodeGenState.BUILD_ERROR)).isNull();
-            verify(mockCodeGenAgent, times(1)).generate(anyString());
+            verify(mockCodeGenAgent, times(1)).generate(anyLong(), anyString());
             log.info("[OK] 构建失败回退修复流程验证通过");
         }
     }
@@ -723,7 +729,7 @@ class PipelineNodesTest {
             ExecutionPlanningNode en = new ExecutionPlanningNode(factory, streamRegistry);
             CodeGenerationNode cn = new CodeGenerationNode(
                     factory, streamRegistry, promptLoader, projectFileService,
-                    new com.fasterxml.jackson.databind.ObjectMapper(), Runnable::run);
+                    new com.fasterxml.jackson.databind.ObjectMapper(), Runnable::run, streamingBridge, compactionService, chatMemoryProvider);
             StyleOptimizationNode sn = new StyleOptimizationNode(factory, streamRegistry);
             BuildVerificationNode bn = new BuildVerificationNode(sandboxService, streamRegistry);
             PreviewDeployNode pn = new PreviewDeployNode(sandboxService, projectService, streamRegistry);

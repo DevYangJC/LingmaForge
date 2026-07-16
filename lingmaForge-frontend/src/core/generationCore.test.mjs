@@ -3,6 +3,7 @@ import test from 'node:test'
 
 import {
   createInitialWorkbenchState,
+  reducePipelineNodeStart,
   reduceGenerationMessage,
   reduceGenerationComplete,
   reduceGenerationError,
@@ -76,4 +77,42 @@ test('error events stop generation and keep a system message visible', () => {
   assert.equal(state.sandboxStatus, 'error')
   assert.equal(state.chatMessages.at(-1).role, 'system')
   assert.equal(state.chatMessages.at(-1).level, 'error')
+})
+
+test('reveals pipeline nodes progressively instead of showing the full pipeline upfront', () => {
+  let state = createInitialWorkbenchState('task-progressive', 'Build a CRM')
+
+  assert.deepEqual(state.visibleNodeNames, [])
+
+  state = reduceGenerationMessage(state, {
+    threadId: 'task-progressive',
+    nodeName: 'requirement_analysis',
+    text: '需求分析完成',
+    textType: 'TEXT',
+    error: false,
+  })
+
+  assert.deepEqual(state.visibleNodeNames, ['requirement_analysis'])
+
+  state = reduceGenerationMessage(state, {
+    threadId: 'task-progressive',
+    nodeName: 'execution_planning',
+    text: '执行规划完成',
+    textType: 'TEXT',
+    error: false,
+  })
+
+  assert.deepEqual(state.visibleNodeNames, ['requirement_analysis', 'execution_planning'])
+})
+test('node_start events reveal only the active pipeline node', () => {
+  let state = createInitialWorkbenchState('task-node-start', 'Build a Vue app')
+
+  state = reducePipelineNodeStart(state, {
+    nodeName: 'requirement_analysis',
+    title: 'Analyzing requirement',
+  })
+
+  assert.deepEqual(state.visibleNodeNames, ['requirement_analysis'])
+  assert.equal(state.checklist.requirement_analysis, 'running')
+  assert.equal(state.nodeThinkings.requirement_analysis, 'Analyzing requirement')
 })

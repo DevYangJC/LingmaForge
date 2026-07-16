@@ -1,35 +1,26 @@
 package com.lingmaforge.backend.workbench.service;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
-import com.lingmaforge.backend.common.model.FileModification;
-import com.lingmaforge.backend.common.model.SandboxInfo;
 import org.bsc.langgraph4j.NodeOutput;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
-import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lingmaforge.backend.workbench.ai.factory.AgentFactory;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationContext;
-import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamRegistry;
 import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenPipeline;
 import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenState;
+import com.lingmaforge.backend.workbench.ai.pipeline.IterationPipeline;
+import com.lingmaforge.backend.workbench.ai.stream.FluxStreamEmitter;
 import com.lingmaforge.backend.common.exception.BusinessException;
 import com.lingmaforge.backend.common.exception.ResultCode;
 import com.lingmaforge.backend.infra.config.AsyncConfig;
@@ -37,28 +28,33 @@ import com.lingmaforge.backend.workbench.entity.ChatMessageEntity;
 import com.lingmaforge.backend.workbench.mapper.ChatMessageMapper;
 
 import jakarta.annotation.PreDestroy;
+import org.springframework.http.codec.ServerSentEvent;
+import reactor.core.publisher.Flux;
 
 /**
- * 生成服务：编排 StateGraph 流水线并通过 SSE 流式推送进度。
+ * 生成服务：编排 StateGraph 流水线并通过响应式 SSE 流式推送进度。
  *
  * <p>核心职责：
  * <ul>
  *   <li>创建生成任务，分配 taskId（= StateGraph threadId = SSE streamId）</li>
- *   <li>异步驱动 {@link CodeGenPipeline} 的 graph.stream()，遍历 NodeOutput</li>
- *   <li>把节点进度、文件生成、日志、完成/错误事件通过 SseEmitter 推送给前端</li>
+ *   <li>异步驱动 {@link CodeGenPipeline} / {@link IterationPipeline} 的 graph.stream()</li>
+ *   <li>把节点进度、文件生成、日志、完成/错误事件经 {@link FluxStreamEmitter} 统一封装后
+ *       通过 {@code Flux<ServerSentEvent<String>>}（Spring WebFlux 响应式返回值）推送给前端</li>
  *   <li>支持停止生成、迭代修改</li>
  * </ul>
- * 每个任务对应一个 SseEmitter 与一个 GenerationStreamEmitter 实现。</p>
+ * 每个任务对应一个 {@link FluxStreamEmitter}（实现 {@link
+ * com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter}）与一个 {@link StreamContext}。</p>
+ *
+ * <p><b>统一封装事件类型</b>（SSE {@code event:} 名）：token / thinking / tool_call / done / error。
+ * 节点生命周期、文件落盘等丰富语义折叠进 {@code token} 事件的 {@code kind} 字段，由前端分发。</p>
  */
 @Service
 public class GenerationService {
 
     private static final Logger log = LoggerFactory.getLogger(GenerationService.class);
 
-    /** SSE 连接超时时间：不限时（依赖沙箱/容器网关管理真实超时，防止 Spring 主动超时断连）。 */
-    private static final long SSE_TIMEOUT = 0L;
-
     private final CodeGenPipeline pipeline;
+    private final IterationPipeline iterationPipeline;
     private final AgentFactory agentFactory;
     private final ProjectService projectService;
     private final GenerationTaskService taskService;
@@ -70,13 +66,8 @@ public class GenerationService {
 
     private final ConcurrentHashMap<String, StreamContext> streamContextMap = new ConcurrentHashMap<>();
 
-    private final ScheduledExecutorService heartbeatExecutor = Executors.newSingleThreadScheduledExecutor(runnable -> {
-        Thread thread = new Thread(runnable, "sse-heartbeat-thread");
-        thread.setDaemon(true);
-        return thread;
-    });
-
     public GenerationService(CodeGenPipeline pipeline,
+            IterationPipeline iterationPipeline,
             AgentFactory agentFactory,
             ProjectService projectService,
             GenerationTaskService taskService,
@@ -86,6 +77,7 @@ public class GenerationService {
             ObjectMapper objectMapper,
             @Qualifier(AsyncConfig.GENERATION_EXECUTOR) Executor executor) {
         this.pipeline = pipeline;
+        this.iterationPipeline = iterationPipeline;
         this.agentFactory = agentFactory;
         this.projectService = projectService;
         this.taskService = taskService;
@@ -115,45 +107,64 @@ public class GenerationService {
     /**
      * 打开 SSE 流并异步执行生成流水线。
      *
+     * <p>返回 Spring WebFlux 的 {@code Flux<ServerSentEvent<String>>}：在 Servlet (MVC) 模式下，
+     * Spring 通过 {@code ReactiveTypeHandler} 把 {@code Flux} 适配为 Servlet 异步流式响应，
+     * 逐条立即 flush，实现真正 token 级 SSE 推送。</p>
+     *
      * @param taskId 任务 ID
-     * @return SseEmitter
+     * @return 响应式 SSE 事件流
      */
-    public SseEmitter streamGeneration(String taskId) {
+    public Flux<ServerSentEvent<String>> streamGeneration(String taskId) {
         var task = taskService.getByTaskId(taskId);
         if (task == null) {
             throw new BusinessException(ResultCode.TASK_NOT_FOUND);
         }
-        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
-        SseStreamEmitter sseEmitter = new SseStreamEmitter(taskId, emitter, objectMapper);
-        StreamContext context = new StreamContext(taskId, sseEmitter);
-        streamContextMap.put(taskId, context);
-        streamRegistry.register(taskId, sseEmitter);
+        return buildStreamFlux(taskId, task.getProjectId(), task.getPrompt(), this::runPipeline);
+    }
 
-        emitter.onCompletion(() -> cleanup(taskId));
-        emitter.onTimeout(() -> {
-            log.warn("SSE 连接超时: taskId={}", taskId);
-            stopStreamProcessing(taskId);
+    /**
+     * 打开迭代修改的 SSE 流并执行。
+     *
+     * @param taskId 任务 ID
+     * @return 响应式 SSE 事件流
+     */
+    public Flux<ServerSentEvent<String>> streamIteration(String taskId) {
+        var task = taskService.getByTaskId(taskId);
+        if (task == null) {
+            throw new BusinessException(ResultCode.TASK_NOT_FOUND);
+        }
+        return buildStreamFlux(taskId, task.getProjectId(), task.getPrompt(), this::runIteration);
+    }
+
+    /**
+     * 统一构建 SSE Flux：绑定取消信号、注册 emitter，并在独立线程驱动流水线，
+     * 把高层流水线事件经 {@link FluxStreamEmitter} 推送为统一封装的 {@link ServerSentEvent}。
+     *
+     * <p>取消/断连时通过 {@code sink.onCancel} 标记停止，使正在执行的流式节点提前退出；
+     * {@code sink.onDispose} 负责注销 emitter 与上下文。流水线线程结束后 {@code sink.complete()}
+     * 正常结束响应式流。</p>
+     */
+    private Flux<ServerSentEvent<String>> buildStreamFlux(String taskId, Long projectId, String prompt,
+            PipelineRunner runner) {
+        return Flux.create(sink -> {
+            StreamContext context = new StreamContext(taskId);
+            streamContextMap.put(taskId, context);
+            sink.onCancel(() -> stopStreamProcessing(taskId));
+            sink.onDispose(() -> cleanup(taskId));
+
+            FluxStreamEmitter emitter = new FluxStreamEmitter(taskId, sink, objectMapper);
+            streamRegistry.register(taskId, emitter);
+
+            executor.execute(() -> {
+                try {
+                    runner.run(taskId, projectId, prompt, emitter, context);
+                } finally {
+                    GenerationContext.clear();
+                    sink.complete();
+                }
+            });
         });
-        emitter.onError(throwable -> {
-            log.warn("SSE 连接异常: taskId={}", taskId, throwable);
-            stopStreamProcessing(taskId);
-        });
-
-        Long projectId = task.getProjectId();
-        String prompt = task.getPrompt();
-
-        // 启动心跳定时器
-        ScheduledFuture<?> heartbeatFuture = heartbeatExecutor.scheduleAtFixedRate(() -> {
-            try {
-                emitter.send(SseEmitter.event().comment("keep-alive"));
-            } catch (Exception e) {
-                log.debug("SSE 发送心跳失败: taskId={}", taskId);
-            }
-        }, 15, 15, TimeUnit.SECONDS);
-        context.heartbeatFuture = heartbeatFuture;
-
-        executor.execute(() -> runPipeline(taskId, projectId, prompt, sseEmitter, context));
-        return emitter;
+        // 备注：SSE 心跳保活留给后续接入；当前生成/迭代过程 Token 持续产出，连接不会空闲。
     }
 
     /**
@@ -186,44 +197,15 @@ public class GenerationService {
     }
 
     /**
-     * 打开迭代修改的 SSE 流并执行。
-     *
-     * @param taskId 任务 ID
-     * @return SseEmitter
+     * 流水线执行体契约，供 generation / iteration 两条路径复用 {@link #buildStreamFlux}。
      */
-    public SseEmitter streamIteration(String taskId) {
-        var task = taskService.getByTaskId(taskId);
-        if (task == null) {
-            throw new BusinessException(ResultCode.TASK_NOT_FOUND);
-        }
-        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
-        SseStreamEmitter sseEmitter = new SseStreamEmitter(taskId, emitter, objectMapper);
-        StreamContext context = new StreamContext(taskId, sseEmitter);
-        streamContextMap.put(taskId, context);
-        streamRegistry.register(taskId, sseEmitter);
-        emitter.onCompletion(() -> cleanup(taskId));
-        emitter.onTimeout(() -> stopStreamProcessing(taskId));
-        emitter.onError(t -> stopStreamProcessing(taskId));
-
-        Long projectId = task.getProjectId();
-        String prompt = task.getPrompt();
-
-        // 启动心跳定时器
-        ScheduledFuture<?> heartbeatFuture = heartbeatExecutor.scheduleAtFixedRate(() -> {
-            try {
-                emitter.send(SseEmitter.event().comment("keep-alive"));
-            } catch (Exception e) {
-                log.debug("SSE 发送心跳失败: taskId={}", taskId);
-            }
-        }, 15, 15, TimeUnit.SECONDS);
-        context.heartbeatFuture = heartbeatFuture;
-
-        executor.execute(() -> runIteration(taskId, projectId, prompt, sseEmitter, context));
-        return emitter;
+    @FunctionalInterface
+    public interface PipelineRunner {
+        void run(String taskId, Long projectId, String prompt, FluxStreamEmitter emitter, StreamContext context);
     }
 
     private void runPipeline(String taskId, Long projectId, String prompt,
-            SseStreamEmitter emitter, StreamContext context) {
+            FluxStreamEmitter emitter, StreamContext context) {
         try {
             Map<String, Object> inputs = new HashMap<>();
             inputs.put(CodeGenState.PROMPT, prompt);
@@ -254,43 +236,42 @@ public class GenerationService {
             log.error("[{}] 流水线执行失败", taskId, e);
             taskService.markFailed(taskId, e.getMessage());
             emitter.error("生成失败: " + e.getMessage());
-        } finally {
-            GenerationContext.clear();
-            emitter.safeComplete();
-            cleanup(taskId);
         }
     }
 
     private void runIteration(String taskId, Long projectId, String prompt,
-            SseStreamEmitter emitter, StreamContext context) {
-        GenerationContext.set(projectId, taskId, emitter);
+            FluxStreamEmitter emitter, StreamContext context) {
         try {
-            taskService.updateStage(taskId, "iteration");
-            emitter.emitNode("iteration", "正在理解修改意图并定位代码...", "TEXT");
-            var agent = agentFactory.createIterationAgent();
-            String contextSummary = buildIterationContext(projectId);
-            String fullPrompt = "用户修改指令: " + prompt + "\n\n项目上下文:\n" + contextSummary;
-            agent.modify(fullPrompt);
-            if (!context.stopped) {
-                var sandbox = new SandboxInfo(
-                        projectService.getById(projectId).getSandboxUrl(), 0, "running");
-                taskService.markCompleted(taskId, sandbox.url(), 0);
-                emitter.complete(sandbox.url(), 0, 0);
+            Map<String, Object> inputs = new HashMap<>();
+            inputs.put(CodeGenState.PROJECT_ID, String.valueOf(projectId));
+            inputs.put(CodeGenState.TASK_ID, taskId);
+            inputs.put(CodeGenState.ITERATION_PROMPT, prompt);
+
+            NodeOutput<CodeGenState> last = null;
+            taskService.updateStage(taskId, "iteration_intent_analysis");
+            for (NodeOutput<CodeGenState> output :
+                    iterationPipeline.getCompiledGraph().stream(inputs)) {
+                if (context.stopped) {
+                    break;
+                }
+                last = output;
+            }
+            if (context.stopped) {
+                return;
+            }
+            if (last != null) {
+                var finalState = last.state();
+                String previewUrl = finalState.previewUrl().orElse(null);
+                Integer port = finalState.previewPort().orElse(0);
+                Integer buildTime = finalState.buildTime().orElse(0);
+                taskService.markCompleted(taskId, previewUrl, buildTime);
+                emitter.complete(previewUrl, port, buildTime);
             }
         } catch (Exception e) {
             log.error("[{}] 迭代修改失败", taskId, e);
             taskService.markFailed(taskId, e.getMessage());
             emitter.error("迭代修改失败: " + e.getMessage());
-        } finally {
-            GenerationContext.clear();
-            emitter.safeComplete();
-            cleanup(taskId);
         }
-    }
-
-    private String buildIterationContext(Long projectId) {
-        var ctx = projectService.getProjectContext(projectId);
-        return "框架: " + ctx.framework() + "\n文件列表:\n" + String.join("\n", ctx.filePaths());
     }
 
     private void stopStreamProcessing(String taskId) {
@@ -301,10 +282,7 @@ public class GenerationService {
     }
 
     private void cleanup(String taskId) {
-        StreamContext context = streamContextMap.remove(taskId);
-        if (context != null && context.heartbeatFuture != null) {
-            context.heartbeatFuture.cancel(true);
-        }
+        streamContextMap.remove(taskId);
         streamRegistry.unregister(taskId);  // 同时清理 stoppedTasks
     }
 
@@ -335,146 +313,15 @@ public class GenerationService {
     public void destroy() {
         streamContextMap.keySet().forEach(this::stopStreamProcessing);
         streamContextMap.clear();
-        heartbeatExecutor.shutdown();
     }
 
     /** 流上下文，记录停止标志。 */
-    private static class StreamContext {
+    public static class StreamContext {
         final String taskId;
-        final SseStreamEmitter emitter;
         volatile boolean stopped;
-        ScheduledFuture<?> heartbeatFuture;
 
-        StreamContext(String taskId, SseStreamEmitter emitter) {
+        StreamContext(String taskId) {
             this.taskId = taskId;
-            this.emitter = emitter;
-        }
-    }
-
-    /**
-     * 基于 SseEmitter 的 GenerationStreamEmitter 实现。
-     */
-    private static class SseStreamEmitter implements GenerationStreamEmitter {
-
-        private final String taskId;
-        private final SseEmitter emitter;
-        private final ObjectMapper objectMapper;
-
-        SseStreamEmitter(String taskId, SseEmitter emitter, ObjectMapper objectMapper) {
-            this.taskId = taskId;
-            this.emitter = emitter;
-            this.objectMapper = objectMapper;
-        }
-
-        @Override
-        public void emitNode(String nodeName, String text, String textType) {
-            send("message", Map.of(
-                    "threadId", taskId,
-                    "nodeName", nodeName,
-                    "text", text,
-                    "textType", textType,
-                    "error", false));
-        }
-
-        @Override
-        public void emitFile(String path, String content, String status) {
-            send("file", Map.of(
-                    "threadId", taskId,
-                    "path", path,
-                    "content", content,
-                    "status", status));
-        }
-
-        @Override
-        public void emitLog(String text) {
-            send("log", Map.of("threadId", taskId, "text", text));
-        }
-
-        @Override
-        public void complete(String url, Integer port, Integer buildTime) {
-            send("complete", Map.of(
-                    "threadId", taskId,
-                    "url", url == null ? "" : url,
-                    "port", port == null ? 0 : port,
-                    "buildTime", buildTime == null ? 0 : buildTime));
-        }
-
-        @Override
-        public void error(String message) {
-            send("error", Map.of(
-                    "threadId", taskId,
-                    "nodeName", "error",
-                    "text", message,
-                    "error", true));
-        }
-
-        @Override
-        public void emitModification(String nodeName, String text, String textType,
-                List<FileModification> modifications) {
-            Map<String, Object> data = new HashMap<>();
-            data.put("threadId", taskId);
-            data.put("nodeName", nodeName);
-            data.put("text", text);
-            data.put("textType", textType);
-            data.put("error", false);
-            data.put("modifications", modifications);
-            send("message", data);
-        }
-
-        @Override
-        public void emitNodeStart(String nodeName, String title) {
-            send("node_start", Map.of(
-                    "threadId", taskId,
-                    "nodeName", nodeName,
-                    "title", title));
-        }
-
-        @Override
-        public void emitNodeEnd(String nodeName) {
-            send("node_end", Map.of(
-                    "threadId", taskId,
-                    "nodeName", nodeName));
-        }
-
-        @Override
-        public void emitThinking(String nodeName, String token) {
-            send("thinking", Map.of(
-                    "threadId", taskId,
-                    "nodeName", nodeName,
-                    "token", token));
-        }
-
-        @Override
-        public void emitFileToken(String path, String token) {
-            send("file_token", Map.of(
-                    "threadId", taskId,
-                    "path", path,
-                    "token", token));
-        }
-
-        @Override
-        public void emitFileComplete(String path) {
-            send("file_complete", Map.of(
-                    "threadId", taskId,
-                    "path", path));
-        }
-
-        private void send(String event, Object data) {
-            try {
-                emitter.send(SseEmitter.event()
-                        .name(event)
-                        .data(objectMapper.writeValueAsString(data), MediaType.APPLICATION_JSON));
-            } catch (IOException | IllegalStateException e) {
-                log.debug("SSE 发送失败（连接可能已关闭）: taskId={}, event={}", taskId, event);
-            }
-        }
-
-        void safeComplete() {
-            try {
-                emitter.complete();
-            } catch (Exception e) {
-                log.debug("SSE complete 异常: taskId={}", taskId);
-            }
         }
     }
 }

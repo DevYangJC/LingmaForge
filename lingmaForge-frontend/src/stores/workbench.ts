@@ -7,18 +7,19 @@ import {
   reduceGenerationComplete,
   reduceGenerationError,
   reduceGenerationMessage,
+  reducePipelineNodeStart,
   selectActiveFile,
   showFileDiff,
   updateActiveFileContent,
   getLanguageFromPath,
-} from '@/core/generationCore.mjs'
+} from '@/core/generationCore'
 import type {
   PipelineNodeName,
   SSECompleteData,
   SSEMessage,
   WorkbenchCoreState,
   WorkbenchMode,
-} from '@/core/generationCore.mjs'
+} from '@/core/generationCore'
 import { projectApi } from '@/api/project'
 import type { ProjectResponse } from '@/api/project'
 import { generationApi } from '@/api/generation'
@@ -31,16 +32,27 @@ const stageLabels: Record<PipelineNodeName, string> = {
   style_optimization: '样式优化',
   build_verification: '构建验证',
   preview_deploy: '预览部署',
+  iteration_intent_analysis: '意图分析',
+  project_context_load: '上下文读取',
+  modification_planning: '修改规划',
+  code_patch: '代码应用',
+  build_error_analysis: '错误分析',
   iteration_intent: '迭代理解',
   code_locating: '代码定位',
   modification_generation: '修改生成',
 }
 
-const visiblePipelineNodes: PipelineNodeName[] = [
+const generationPipelineNodes: PipelineNodeName[] = [
   'requirement_analysis',
   'execution_planning',
   'code_generation',
   'style_optimization',
+  'build_verification',
+  'preview_deploy',
+]
+
+const iterationPipelineNodes: PipelineNodeName[] = [
+  'code_patch',
   'build_verification',
   'preview_deploy',
 ]
@@ -67,6 +79,105 @@ function asSseMessage(
   return { threadId: taskId, nodeName, text, textType, error: false }
 }
 
+/**
+ * 把后端统一封装的 SSE 事件注册到 EventSource 上。
+ * 后端事件类型收敛为五类：token / thinking / tool_call / done / error。
+ * - `token` 事件用 `data.kind` 区分二级语义（node_start / node_end / node_text /
+ *   file_token / file_complete / file / log / mod），分别复用既有 UI 渲染分支。
+ * - `thinking` → 流式推理过程缓冲。
+ * - `tool_call` → 模型工具调用可视化（调用中 result=null / 完成阶段 result 非空）。
+ * - `done` → 流水线完成（含预览地址、端口、构建耗时）。
+ * - `error` → 任意阶段失败。
+ *
+ * 这样既适配新协议，又完全复用现有 reducer 与缓冲机制，不打断打字机动画。
+ */
+function attachUnifiedSseListeners(
+  eventSource: EventSource,
+  ctx: {
+    onData: (data: { nodeName: PipelineNodeName; text: string }) => void
+    onNodeStart: (data: { nodeName: PipelineNodeName; title?: string }) => void
+    onNodeEnd: (data: { nodeName: PipelineNodeName }) => void
+    onThinkingToken: (data: { nodeName: PipelineNodeName; token: string }) => void
+    onFileToken: (data: { path: string; token: string }) => void
+    onFileComplete: (data: { path: string }) => void
+    onFile: (data: { path: string; content: string; status: string }) => void
+    onLog: (data: { text: string }) => void
+    onModification?: (data: any) => void
+    onToolCall?: (data: { id: string; name: string; arguments: string; result: string | null }) => void
+    onDone: (data: { url: string; port?: number; buildTime?: number }) => void
+    onError: (message: string) => void
+  },
+) {
+  eventSource.addEventListener('token', (event) => {
+    try {
+      const d = JSON.parse(event.data) as { kind?: string; [k: string]: any }
+      const kind = d.kind || 'node_text'
+      switch (kind) {
+        case 'node_start':
+          ctx.onNodeStart({ nodeName: d.nodeName, title: d.text })
+          break
+        case 'node_end':
+          ctx.onNodeEnd({ nodeName: d.nodeName })
+          break
+        case 'node_text':
+          ctx.onData({ nodeName: d.nodeName, text: d.text || '' })
+          break
+        case 'file_token':
+          ctx.onFileToken({ path: d.path, token: d.token || '' })
+          break
+        case 'file_complete':
+          ctx.onFileComplete({ path: d.path })
+          break
+        case 'file':
+          ctx.onFile({ path: d.path, content: d.content || '', status: d.status || 'new' })
+          break
+        case 'log':
+          ctx.onLog({ text: d.text || '' })
+          break
+        case 'mod':
+          ctx.onModification?.(d)
+          break
+        default:
+          console.warn('未知的 token kind:', kind, d)
+      }
+    } catch (err) {
+      console.error('解析 token SSE 失败:', err)
+    }
+  })
+  eventSource.addEventListener('thinking', (event) => {
+    try {
+      const d = JSON.parse(event.data) as { nodeName: PipelineNodeName; token: string }
+      ctx.onThinkingToken({ nodeName: d.nodeName, token: d.token || '' })
+    } catch (err) {
+      console.error('解析 thinking SSE 失败:', err)
+    }
+  })
+  eventSource.addEventListener('tool_call', (event) => {
+    try {
+      const d = JSON.parse(event.data) as { id: string; name: string; arguments: string; result: string | null }
+      ctx.onToolCall?.(d)
+    } catch (err) {
+      console.error('解析 tool_call SSE 失败:', err)
+    }
+  })
+  eventSource.addEventListener('done', (event) => {
+    try {
+      const d = JSON.parse(event.data) as { url: string; port?: number; buildTime?: number }
+      ctx.onDone({ url: d.url, port: d.port, buildTime: d.buildTime })
+    } catch (err) {
+      console.error('解析 done SSE 失败:', err)
+    }
+  })
+  eventSource.addEventListener('error', (event) => {
+    try {
+      const msg = (event as any)?.data ? JSON.parse((event as any).data)?.message : null
+      ctx.onError(msg || 'SSE 连接异常或任务生成失败')
+    } catch {
+      ctx.onError('SSE 连接异常或任务生成失败')
+    }
+  })
+}
+
 export const useWorkbenchStore = defineStore('workbench', () => {
   const coreState = ref<WorkbenchCoreState>(createSimpleState())
   const model = ref('灵码 UI Pro')
@@ -75,6 +186,7 @@ export const useWorkbenchStore = defineStore('workbench', () => {
   const projectId = ref<string | null>(null)
   
   let eventSource: EventSource | null = null
+  let typewriterTimers: number[] = []
 
   const mode = computed<WorkbenchMode>(() => coreState.value.mode)
   const prompt = computed(() => coreState.value.prompt)
@@ -89,14 +201,26 @@ export const useWorkbenchStore = defineStore('workbench', () => {
   const editorMode = computed(() => coreState.value.editorMode)
   const diffFile = computed(() => coreState.value.diffFile)
   const buildTime = computed(() => coreState.value.buildTime)
-  const checklistItems = computed(() =>
-    visiblePipelineNodes.map((nodeName) => ({
-      nodeName,
-      label: stageLabels[nodeName],
-      status: coreState.value.checklist[nodeName],
-      thinking: (coreState.value as any).nodeThinkings?.[nodeName] || '',
-    })),
-  )
+  const activePipelineNodes = computed(() => {
+    const visibleNodeNames = ((coreState.value as any).visibleNodeNames || []) as PipelineNodeName[]
+    const hasIterationNode = visibleNodeNames.some((nodeName) => iterationPipelineNodes.includes(nodeName))
+    if (coreState.value.mode === 'iteration' || hasIterationNode) {
+      return iterationPipelineNodes
+    }
+    return generationPipelineNodes
+  })
+  const checklistItems = computed(() => {
+    const visibleNodeNames = ((coreState.value as any).visibleNodeNames || []) as PipelineNodeName[]
+    const allowedNodeNames = new Set(activePipelineNodes.value)
+    return visibleNodeNames
+      .filter((nodeName) => allowedNodeNames.has(nodeName))
+      .map((nodeName) => ({
+        nodeName,
+        label: stageLabels[nodeName],
+        status: coreState.value.checklist[nodeName],
+        thinking: (coreState.value as any).nodeThinkings?.[nodeName] || '',
+      }))
+  })
 
   const fileTree = computed(() => {
     const list = coreState.value.files || []
@@ -190,7 +314,69 @@ export const useWorkbenchStore = defineStore('workbench', () => {
     flushTimer = setTimeout(flushBuffer, 100) // 100ms 节流频率（10次 DOM 渲染/秒，兼顾实时性与极佳性能）
   }
 
+  function currentRunningNode(): PipelineNodeName | null {
+    const visible = ((coreState.value as any).visibleNodeNames || []) as PipelineNodeName[]
+    for (let i = visible.length - 1; i >= 0; i--) {
+      const nodeName = visible[i]
+      if (nodeName && coreState.value.checklist[nodeName] === 'running') return nodeName
+    }
+    return visible.at(-1) || null
+  }
+
+  function appendNodeActivity(nodeName: PipelineNodeName | null, text: string) {
+    if (!nodeName || !text) return
+    const thinkings = { ...(coreState.value as any).nodeThinkings }
+    const prefix = thinkings[nodeName] ? '\n' : ''
+    thinkings[nodeName] = `${thinkings[nodeName] || ''}${prefix}${text}`
+    ;(coreState.value as any).nodeThinkings = thinkings
+  }
+
+  function clearTypewriterTimers() {
+    for (const timer of typewriterTimers) {
+      window.clearInterval(timer)
+    }
+    typewriterTimers = []
+  }
+
+  function applyMessageWithTypewriter(message: SSEMessage) {
+    const beforeLength = coreState.value.chatMessages.length
+    const originalText = message.text || ''
+    coreState.value = reduceGenerationMessage(coreState.value, message)
+
+    if (message.error || message.textType !== 'TEXT' || !originalText || message.nodeName === 'build_verification') {
+      return
+    }
+
+    const nextMessages = [...coreState.value.chatMessages]
+    const index = nextMessages.findIndex(
+      (item, itemIndex) => itemIndex >= beforeLength && item.role === 'assistant' && item.nodeName === message.nodeName,
+    )
+    if (index === -1) return
+
+    nextMessages[index] = { ...nextMessages[index]!, content: '' }
+    coreState.value.chatMessages = nextMessages
+
+    let cursor = 0
+    const timer = window.setInterval(() => {
+      cursor += Math.max(1, Math.ceil(originalText.length / 36))
+      const messages = [...coreState.value.chatMessages]
+      const current = messages[index]
+      if (!current) {
+        window.clearInterval(timer)
+        typewriterTimers = typewriterTimers.filter((item) => item !== timer)
+        return
+      }
+      messages[index] = { ...current, content: originalText.slice(0, cursor) }
+      coreState.value.chatMessages = messages
+      if (cursor >= originalText.length) {
+        window.clearInterval(timer)
+        typewriterTimers = typewriterTimers.filter((item) => item !== timer)
+      }
+    }, 24)
+    typewriterTimers.push(timer)
+  }
   function closeEventSource() {
+    clearTypewriterTimers()
     if (flushTimer) {
       clearTimeout(flushTimer)
       flushTimer = null
@@ -203,7 +389,7 @@ export const useWorkbenchStore = defineStore('workbench', () => {
   }
 
   function applyMessage(message: SSEMessage) {
-    coreState.value = reduceGenerationMessage(coreState.value, message)
+    applyMessageWithTypewriter(message)
   }
 
   function applyComplete(data: SSECompleteData) {
@@ -221,219 +407,124 @@ export const useWorkbenchStore = defineStore('workbench', () => {
       withCredentials: true,
     })
 
-    eventSource.addEventListener('message', (event) => {
-      try {
-        const msg = JSON.parse(event.data)
-        applyMessage(msg)
-      } catch (err) {
-        console.error('解析 SSE message 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('node_start', (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        const nodeName = data.nodeName as PipelineNodeName
-        const title = data.title || ''
-        const updatedChecklist = { ...coreState.value.checklist }
-        const currentIndex = visiblePipelineNodes.indexOf(nodeName)
-        if (currentIndex !== -1) {
-          for (let i = 0; i < currentIndex; i++) {
-            const prevNode = visiblePipelineNodes[i]
-            if (prevNode && updatedChecklist[prevNode] !== 'done') {
-              updatedChecklist[prevNode] = 'done'
-            }
-          }
-        }
-        updatedChecklist[nodeName] = 'running'
-        coreState.value.checklist = updatedChecklist
-
-        const thinkings = { ...(coreState.value as any).nodeThinkings }
-        thinkings[nodeName] = title
-        ;(coreState.value as any).nodeThinkings = thinkings
-
+    attachUnifiedSseListeners(eventSource, {
+      onData: (d) => applyMessage(asSseMessage(taskId, d.nodeName, d.text, 'TEXT')),
+      onNodeStart: (d) => {
+        coreState.value = reducePipelineNodeStart(coreState.value, { nodeName: d.nodeName, title: d.title })
         coreState.value.logs.push({
-          id: `log-${Date.now()}`,
+          id: 'log-' + Date.now(),
           timestamp: Date.now(),
-          level: 'info',
-          source: 'system',
-          message: `步骤 [${stageLabels[nodeName] || nodeName}] 开始执行...`,
+          level: 'info' as const,
+          source: 'system' as const,
+          message: '步骤 [' + (stageLabels[d.nodeName] || d.nodeName) + '] 开始执行...',
         })
-      } catch (err) {
-        console.error('解析 node_start 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('node_end', (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        const nodeName = data.nodeName as PipelineNodeName
+      },
+      onNodeEnd: (d) => {
         const updatedChecklist = { ...coreState.value.checklist }
-        updatedChecklist[nodeName] = 'done'
+        updatedChecklist[d.nodeName] = 'done'
         coreState.value.checklist = updatedChecklist
-
-        flushBuffer() // 在节点结束时，强行清空缓冲区，确保当前节点的内容完全渲染完毕
+        flushBuffer()
         coreState.value.logs.push({
-          id: `log-${Date.now()}`,
+          id: 'log-' + Date.now(),
           timestamp: Date.now(),
-          level: 'success',
-          source: 'system',
-          message: `步骤 [${stageLabels[nodeName] || nodeName}] 执行完毕。`,
+          level: 'success' as const,
+          source: 'system' as const,
+          message: 'Step [' + (stageLabels[d.nodeName] || d.nodeName) + '] done.',
         })
-      } catch (err) {
-        console.error('解析 node_end 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('thinking', (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        const nodeName = data.nodeName as PipelineNodeName
-        const token = data.token || ''
-        thinkingBuffer[nodeName] = (thinkingBuffer[nodeName] || '') + token
+      },
+      onThinkingToken: (d) => {
+        thinkingBuffer[d.nodeName] = (thinkingBuffer[d.nodeName] || '') + d.token
         scheduleBufferFlush()
-      } catch (err) {
-        console.error('解析 thinking 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('file_token', (event) => {
-      try {
-        const fileData = JSON.parse(event.data)
-        const path = fileData.path
-        const token = fileData.token || ''
-        fileTokenBuffer[path] = (fileTokenBuffer[path] || '') + token
-
-        if (coreState.value.activeFilePath !== path) {
-          coreState.value.activeFilePath = path
+      },
+      onFileToken: (d) => {
+        fileTokenBuffer[d.path] = (fileTokenBuffer[d.path] || '') + d.token
+        if (coreState.value.activeFilePath !== d.path) {
+          coreState.value.activeFilePath = d.path
         }
         scheduleBufferFlush()
-      } catch (err) {
-        console.error('解析 file_token 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('file_complete', (event) => {
-      try {
-        const fileData = JSON.parse(event.data)
-        const path = fileData.path
+      },
+      onFileComplete: (d) => {
+        appendNodeActivity(currentRunningNode(), '工具调用：文件生成完成 ' + d.path)
         coreState.value.logs.push({
-          id: `log-${Date.now()}`,
+          id: 'log-' + Date.now(),
           timestamp: Date.now(),
-          level: 'success',
-          source: 'build',
-          message: `文件 [${path.split('/').pop() || path}] 生成落盘成功。`,
+          level: 'success' as const,
+          source: 'build' as const,
+          message: '文件 [' + (d.path.split('/').pop() || d.path) + '] 生成落盘成功。',
         })
-      } catch (err) {
-        console.error('解析 file_complete 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('file', (event) => {
-      try {
-        const fileData = JSON.parse(event.data)
+      },
+      onFile: (d) => {
+        appendNodeActivity(currentRunningNode(), '工具调用：写入文件 ' + d.path)
         const nextFile = {
-          id: fileData.path,
-          name: fileData.path.split('/').pop() || fileData.path,
-          path: fileData.path,
+          id: d.path,
+          name: d.path.split('/').pop() || d.path,
+          path: d.path,
           type: 'file' as const,
-          language: getLanguageFromPath(fileData.path),
-          status: (fileData.status || 'new') as 'new' | 'modified' | 'unchanged',
-          content: (fileData.content || '') as string,
+          language: getLanguageFromPath(d.path),
+          status: (d.status || 'new') as 'new' | 'modified' | 'unchanged',
+          content: d.content || '',
         }
-        
         const filesList = [...(coreState.value.files || [])]
         const index = filesList.findIndex((f) => f.path === nextFile.path)
         if (index === -1) {
           filesList.push(nextFile)
         } else {
-          filesList[index] = {
-            ...filesList[index],
-            ...nextFile,
-            content: nextFile.content || filesList[index]?.content || '',
-          }
+          filesList[index] = { ...filesList[index]!, ...nextFile, content: nextFile.content || filesList[index]?.content || '' }
         }
         coreState.value.files = filesList
-        
         if (!coreState.value.activeFilePath) {
           coreState.value.activeFilePath = nextFile.path
         }
-      } catch (err) {
-        console.error('解析 SSE file 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('log', (event) => {
-      try {
-        const logData = JSON.parse(event.data)
-        const text = logData.text || ''
-        let source = 'system'
-        let level = 'info'
-        if (
-          text.includes('失败') ||
-          text.includes('报错') ||
-          text.includes('error') ||
-          text.includes('Error') ||
-          text.includes('failed') ||
-          text.includes('Failed')
-        ) {
+      },
+      onLog: (d) => {
+        const text = d.text || ''
+        appendNodeActivity(currentRunningNode(), '工具调用：' + text)
+        let source: 'system' | 'build' | 'runtime' | 'deploy' = 'system'
+        let level: 'info' | 'success' | 'error' = 'info'
+        if (text.includes('失败') || text.includes('报错') || text.includes('error') || text.includes('Error') || text.includes('failed') || text.includes('Failed')) {
           level = 'error'
-        } else if (
-          text.includes('成功') ||
-          text.includes('success') ||
-          text.includes('Success') ||
-          text.includes('passed') ||
-          text.includes('Passed')
-        ) {
+        } else if (text.includes('成功') || text.includes('success') || text.includes('Success') || text.includes('passed') || text.includes('Passed')) {
           level = 'success'
         }
-        
-        if (
-          text.includes('Vite') ||
-          text.includes('开发服务器') ||
-          text.includes('Server running') ||
-          text.includes('localhost:')
-        ) {
+        if (text.includes('Vite') || text.includes('开发服务器') || text.includes('Server running') || text.includes('localhost:')) {
           source = 'deploy'
-        } else if (
-          text.includes('构建') ||
-          text.includes('npm install') ||
-          text.includes('依赖') ||
-          text.includes('Build')
-        ) {
+        } else if (text.includes('构建') || text.includes('npm install') || text.includes('依赖') || text.includes('Build')) {
           source = 'build'
         }
-        
         coreState.value.logs.push({
-          id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          id: 'log-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
           timestamp: Date.now(),
-          level: level as 'info' | 'success' | 'error',
-          source: source as 'system' | 'build' | 'runtime' | 'deploy',
+          level,
+          source,
           message: text,
         })
-      } catch (err) {
-        console.error('解析 SSE log 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('complete', (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        applyComplete(data)
+      },
+      onToolCall: (d) => {
+        const label = d.result == null
+          ? '调用工具 ' + d.name + '…'
+          : '工具 ' + d.name + ' 完成'
+        appendNodeActivity(currentRunningNode(), label)
+        coreState.value.logs.push({
+          id: 'log-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+          timestamp: Date.now(),
+          level: 'info' as const,
+          source: 'build' as const,
+          message: label + (d.result ? '：' + d.result.slice(0, 120) : ''),
+        })
+      },
+      onDone: (data) => {
+        applyComplete({ threadId: taskId, url: data.url, port: data.port, buildTime: data.buildTime })
         closeEventSource()
         if (projectId.value) {
           syncSandboxStatus(projectId.value)
         }
         loadProjects()
-      } catch (err) {
-        console.error('解析 SSE complete 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('error', (event) => {
-      console.error('SSE 发生错误:', event)
-      applyError('SSE 连接异常或任务生成失败')
-      closeEventSource()
+      },
+      onError: (message) => {
+        console.error(message)
+        applyError(message)
+        closeEventSource()
+      },
     })
   }
 
@@ -444,164 +535,112 @@ export const useWorkbenchStore = defineStore('workbench', () => {
       withCredentials: true,
     })
 
-    eventSource.addEventListener('message', (event) => {
-      try {
-        const msg = JSON.parse(event.data)
-        applyMessage(msg)
-      } catch (err) {
-        console.error('解析迭代 SSE message 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('node_start', (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        const nodeName = data.nodeName as PipelineNodeName
+    attachUnifiedSseListeners(eventSource, {
+      onData: (d) => applyMessage(asSseMessage(taskId, d.nodeName, d.text, 'TEXT')),
+      onNodeStart: (d) => {
+        coreState.value = reducePipelineNodeStart(coreState.value, { nodeName: d.nodeName, title: d.title })
+        coreState.value.logs.push({
+          id: 'log-' + Date.now(),
+          timestamp: Date.now(),
+          level: 'info' as const,
+          source: 'system' as const,
+          message: '步骤 [' + (stageLabels[d.nodeName] || d.nodeName) + '] 开始执行...',
+        })
+      },
+      onNodeEnd: (d) => {
         const updatedChecklist = { ...coreState.value.checklist }
-        updatedChecklist[nodeName] = 'running'
+        updatedChecklist[d.nodeName] = 'done'
         coreState.value.checklist = updatedChecklist
-      } catch (err) {
-        console.error('解析 node_start 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('node_end', (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        const nodeName = data.nodeName as PipelineNodeName
-        const updatedChecklist = { ...coreState.value.checklist }
-        updatedChecklist[nodeName] = 'done'
-        coreState.value.checklist = updatedChecklist
-        flushBuffer() // 在节点结束时，强行清空缓冲区，确保当前节点的内容完全渲染完毕
-      } catch (err) {
-        console.error('解析 node_end 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('thinking', (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        const nodeName = data.nodeName as PipelineNodeName
-        const token = data.token || ''
-        thinkingBuffer[nodeName] = (thinkingBuffer[nodeName] || '') + token
+        flushBuffer()
+      },
+      onThinkingToken: (d) => {
+        thinkingBuffer[d.nodeName] = (thinkingBuffer[d.nodeName] || '') + d.token
         scheduleBufferFlush()
-      } catch (err) {
-        console.error('解析 thinking 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('file_token', (event) => {
-      try {
-        const fileData = JSON.parse(event.data)
-        const path = fileData.path
-        const token = fileData.token || ''
-        fileTokenBuffer[path] = (fileTokenBuffer[path] || '') + token
-
-        if (coreState.value.activeFilePath !== path) {
-          coreState.value.activeFilePath = path
+      },
+      onFileToken: (d) => {
+        fileTokenBuffer[d.path] = (fileTokenBuffer[d.path] || '') + d.token
+        if (coreState.value.activeFilePath !== d.path) {
+          coreState.value.activeFilePath = d.path
         }
         scheduleBufferFlush()
-      } catch (err) {
-        console.error('解析 file_token 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('file_complete', (event) => {
-      try {
-        const fileData = JSON.parse(event.data)
-        const path = fileData.path
-        const file = coreState.value.files.find((f) => f.path === path)
+      },
+      onFileComplete: (d) => {
+        const file = coreState.value.files.find((f) => f.path === d.path)
         if (file) {
           coreState.value.editorMode = 'diff'
           coreState.value.diffFile = {
-            path,
-            original: coreState.value.snapshots[path] || '',
+            path: d.path,
+            original: coreState.value.snapshots[d.path] || '',
             modified: file.content || '',
           }
         }
-      } catch (err) {
-        console.error('解析 file_complete 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('file', (event) => {
-      try {
-        const fileData = JSON.parse(event.data)
+      },
+      onFile: (d) => {
+        appendNodeActivity(currentRunningNode(), '工具调用：写入文件 ' + d.path)
         const nextFile = {
-          id: fileData.path,
-          name: fileData.path.split('/').pop() || fileData.path,
-          path: fileData.path,
+          id: d.path,
+          name: d.path.split('/').pop() || d.path,
+          path: d.path,
           type: 'file' as const,
-          language: getLanguageFromPath(fileData.path),
-          status: (fileData.status || 'modified') as 'new' | 'modified' | 'unchanged',
-          content: fileData.content || '',
+          language: getLanguageFromPath(d.path),
+          status: (d.status || 'modified') as 'new' | 'modified' | 'unchanged',
+          content: d.content || '',
         }
-        
         const filesList = [...(coreState.value.files || [])]
         const index = filesList.findIndex((f) => f.path === nextFile.path)
-        
         const oldContent = index !== -1 ? (filesList[index]?.content || '') : ''
         if (oldContent && !coreState.value.snapshots[nextFile.path]) {
           coreState.value.snapshots[nextFile.path] = oldContent
         }
-
         if (index === -1) {
           filesList.push(nextFile)
         } else {
-          filesList[index] = {
-            ...filesList[index],
-            ...nextFile,
-            content: nextFile.content || filesList[index]?.content || '',
-          }
+          filesList[index] = { ...filesList[index]!, ...nextFile, content: nextFile.content || filesList[index]?.content || '' }
         }
         coreState.value.files = filesList
         coreState.value.activeFilePath = nextFile.path
-        
         coreState.value.editorMode = 'diff'
         coreState.value.diffFile = {
           path: nextFile.path,
           original: coreState.value.snapshots[nextFile.path] || '',
           modified: nextFile.content || '',
         }
-      } catch (err) {
-        console.error('解析迭代 SSE file 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('log', (event) => {
-      try {
-        const logData = JSON.parse(event.data)
+      },
+      onLog: (d) => {
+        appendNodeActivity(currentRunningNode(), '工具调用：' + (d.text || ''))
         coreState.value.logs.push({
-          id: `log-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+          id: 'log-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
           timestamp: Date.now(),
-          level: 'info',
-          source: 'build',
-          message: logData.text || '',
+          level: 'info' as const,
+          source: 'build' as const,
+          message: d.text || '',
         })
-      } catch (err) {
-        console.error('解析迭代 SSE log 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('complete', (event) => {
-      try {
-        const data = JSON.parse(event.data)
-        applyComplete(data)
+      },
+      onToolCall: (d) => {
+        const label = d.result == null ? '调用工具 ' + d.name + '…' : '工具 ' + d.name + ' 完成'
+        appendNodeActivity(currentRunningNode(), label)
+        coreState.value.logs.push({
+          id: 'log-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+          timestamp: Date.now(),
+          level: 'info' as const,
+          source: 'build' as const,
+          message: label + (d.result ? '：' + d.result.slice(0, 120) : ''),
+        })
+      },
+      onDone: (data) => {
+        applyComplete({ threadId: taskId, url: data.url, port: data.port, buildTime: data.buildTime })
         closeEventSource()
         if (projectId.value) {
           syncSandboxStatus(projectId.value)
           loadProject(projectId.value)
         }
         loadProjects()
-      } catch (err) {
-        console.error('解析迭代 SSE complete 失败:', err)
-      }
-    })
-
-    eventSource.addEventListener('error', (event) => {
-      console.error('迭代 SSE 发生错误:', event)
-      applyError('迭代修改失败，请重试')
-      closeEventSource()
+      },
+      onError: (message) => {
+        console.error(message)
+        applyError(message)
+        closeEventSource()
+      },
     })
   }
 
@@ -774,7 +813,12 @@ export const useWorkbenchStore = defineStore('workbench', () => {
       
       coreState.value.taskId = taskId
       coreState.value.prompt = trimmed
+      coreState.value.mode = 'iteration'
       coreState.value.isGenerating = true
+      ;(coreState.value as any).visibleNodeNames = []
+      for (const nodeName of iterationPipelineNodes) {
+        coreState.value.checklist[nodeName] = 'pending'
+      }
       
       startIterationPipeline(taskId)
       return true

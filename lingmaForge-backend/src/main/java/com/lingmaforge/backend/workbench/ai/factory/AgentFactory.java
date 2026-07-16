@@ -1,6 +1,9 @@
 package com.lingmaforge.backend.workbench.ai.factory;
 
 import java.util.Map;
+import java.util.function.Function;
+
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 
 import dev.langchain4j.data.message.ChatMessage;
 import dev.langchain4j.model.chat.ChatRequestOptions;
@@ -11,6 +14,7 @@ import dev.langchain4j.model.chat.response.StreamingChatResponseHandler;
 import dev.langchain4j.model.openai.OpenAiStreamingChatModel;
 import dev.langchain4j.model.anthropic.AnthropicStreamingChatModel;
 import com.lingmaforge.backend.infra.config.LingmaModelsProperties.ModelConfig;
+import java.util.HashMap;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
@@ -18,11 +22,14 @@ import org.springframework.stereotype.Component;
 import com.lingmaforge.backend.workbench.ai.service.CodeGenAgent;
 import com.lingmaforge.backend.workbench.ai.service.ExecutionPlanner;
 import com.lingmaforge.backend.workbench.ai.service.IterationAgent;
+import com.lingmaforge.backend.workbench.ai.service.IterationEditor;
 import com.lingmaforge.backend.workbench.ai.service.RequirementAnalyzer;
 import com.lingmaforge.backend.workbench.ai.service.StyleOptimizationAgent;
 import com.lingmaforge.backend.workbench.ai.tool.FileTools;
-import com.lingmaforge.backend.workbench.ai.tool.IterationTools;
 import com.lingmaforge.backend.workbench.ai.tool.ProjectContextTools;
+import com.lingmaforge.backend.workbench.ai.tool.UpdatePlanTool;
+import com.lingmaforge.backend.workbench.ai.tool.ExitTool;
+import com.lingmaforge.backend.workbench.ai.plan.PlanTracker;
 import com.lingmaforge.backend.infra.config.LingmaModelsProperties;
 import com.lingmaforge.backend.infra.config.LingmaModelsProperties.AgentModelConfig;
 import com.lingmaforge.backend.workbench.service.PromptTemplateLoader;
@@ -71,21 +78,30 @@ public class AgentFactory {
     private final PromptTemplateLoader promptLoader;
     private final FileTools fileTools;
     private final ProjectContextTools projectContextTools;
-    private final IterationTools iterationTools;
+    private final UpdatePlanTool updatePlanTool;
+    private final ExitTool exitTool;
+    private final PlanTracker planTracker;
+    private final Function<String, MessageWindowChatMemory> chatMemoryProvider;
 
     public AgentFactory(Map<String, ChatModel> chatModels,
             LingmaModelsProperties properties,
             PromptTemplateLoader promptLoader,
             FileTools fileTools,
             ProjectContextTools projectContextTools,
-            IterationTools iterationTools) {
+            UpdatePlanTool updatePlanTool,
+            ExitTool exitTool,
+            PlanTracker planTracker,
+            Function<String, MessageWindowChatMemory> chatMemoryProvider) {
         this.chatModels = chatModels;
         this.properties = properties;
         this.agentConfigs = properties.agents() != null ? properties.agents() : Map.of();
         this.promptLoader = promptLoader;
         this.fileTools = fileTools;
         this.projectContextTools = projectContextTools;
-        this.iterationTools = iterationTools;
+        this.updatePlanTool = updatePlanTool;
+        this.exitTool = exitTool;
+        this.planTracker = planTracker;
+        this.chatMemoryProvider = chatMemoryProvider;
     }
 
     // ======================== 模型解析 ========================
@@ -129,6 +145,13 @@ public class AgentFactory {
     /**
      * 根据 Agent 类型从配置中解析对应的 StreamingChatModel。
      *
+     * <p>对 OpenAI 兼容协议（DeepSeek / 通义 / Moonshot 等）启用移植自 zero-code 的
+     * <b>推理流式</b>能力：{@code returnThinking} 返回 reasoning_content 思考分片，
+     * {@code sendThinking} 在后续工具调用请求中回放 reasoning_content —— 这是多轮工具调用
+     * 下保持思维链连续、显著提升代码生成质量的<关键杠杆>。
+     * 同时关闭 HTTP 压缩（{@code Accept-Encoding: identity}）规避代理截断，
+     * 并按配置注入 {@code maxTokens}。</p>
+     *
      * @param agentType Agent 类型
      * @return 对应 StreamingChatModel，永不返回 null
      */
@@ -139,70 +162,88 @@ public class AgentFactory {
             String modelAlias = agentConfig.model();
             ModelConfig config = properties.models().get(modelAlias);
             if (config != null) {
-                String apiKey = config.apiKey();
-                if (apiKey != null && !apiKey.isBlank() && !apiKey.startsWith("$")) {
-                    String provider = config.provider() == null ? "openai" : config.provider().toLowerCase();
-                    boolean logReq = config.logRequests() != null && config.logRequests();
-                    boolean logResp = config.logResponses() != null && config.logResponses();
-                    int retries = config.maxRetries() != null ? config.maxRetries() : 2;
-
-                    if ("anthropic".equals(provider)) {
-                        log.info("创建流式 Anthropic 模型 [{}]: model={}", modelAlias, config.modelName());
-                        return AnthropicStreamingChatModel.builder()
-                                .apiKey(apiKey)
-                                .modelName(config.modelName())
-                                .logRequests(logReq)
-                                .logResponses(logResp)
-                                .build();
-                    } else if ("openai".equals(provider)) {
-                        log.info("创建流式 OpenAI 兼容模型 [{}]: baseUrl={}, model={}", modelAlias, config.baseUrl(), config.modelName());
-                        return OpenAiStreamingChatModel.builder()
-                                .baseUrl(config.baseUrl())
-                                .apiKey(apiKey)
-                                .modelName(config.modelName())
-                                .logRequests(logReq)
-                                .logResponses(logResp)
-                                .build();
-                    }
+                StreamingChatModel model = buildStreamingModel(modelAlias, config, false);
+                if (model != null) {
+                    return model;
                 }
             }
         }
 
-        // 回退逻辑
+        // 回退逻辑：取第一个可用流式模型
         if (properties.models() != null) {
             for (Map.Entry<String, ModelConfig> entry : properties.models().entrySet()) {
                 ModelConfig config = entry.getValue();
-                String apiKey = config.apiKey();
-                if (apiKey != null && !apiKey.isBlank() && !apiKey.startsWith("$")) {
-                    String provider = config.provider() == null ? "openai" : config.provider().toLowerCase();
-                    boolean logReq = config.logRequests() != null && config.logRequests();
-                    boolean logResp = config.logResponses() != null && config.logResponses();
-                    int retries = config.maxRetries() != null ? config.maxRetries() : 2;
-
-                    if ("anthropic".equals(provider)) {
-                        log.warn("Agent [{}] 未配置或配置的流式模型不可用，回退至第一个可用流式模型 [{}]", agentName, entry.getKey());
-                        return AnthropicStreamingChatModel.builder()
-                                .apiKey(apiKey)
-                                .modelName(config.modelName())
-                                .logRequests(logReq)
-                                .logResponses(logResp)
-                                .build();
-                    } else if ("openai".equals(provider)) {
-                        log.warn("Agent [{}] 未配置或配置的流式模型不可用，回退至第一个可用流式模型 [{}]", agentName, entry.getKey());
-                        return OpenAiStreamingChatModel.builder()
-                                .baseUrl(config.baseUrl())
-                                .apiKey(apiKey)
-                                .modelName(config.modelName())
-                                .logRequests(logReq)
-                                .logResponses(logResp)
-                                .build();
-                    }
+                StreamingChatModel model = buildStreamingModel(entry.getKey(), config, true);
+                if (model != null) {
+                    return model;
                 }
             }
         }
 
         log.error("❌ Agent [{}] 没有任何可用的流式 AI 模型！", agentName);
         return new NoOpStreamingModel();
+    }
+
+    /**
+     * 统一构建流式模型：按 provider 分发，对 OpenAI 兼容协议注入推理回放与抗代理截断配置。
+     *
+     * @param modelAlias 模型别名（仅用于日志）
+     * @param config     模型连接配置
+     * @param fallback   是否为回退链路（影响日志级别）
+     * @return 构建成功的 StreamingChatModel；api-key 缺失或不支持的 provider 返回 null
+     */
+    private StreamingChatModel buildStreamingModel(String modelAlias, ModelConfig config, boolean fallback) {
+        String apiKey = config.apiKey();
+        if (apiKey == null || apiKey.isBlank() || apiKey.startsWith("$")) {
+            return null;
+        }
+        String provider = config.provider() == null ? "openai" : config.provider().toLowerCase();
+        boolean logReq = config.logRequests() != null && config.logRequests();
+        boolean logResp = config.logResponses() != null && config.logResponses();
+
+        if ("anthropic".equals(provider)) {
+            if (fallback) {
+                log.warn("Agent 回退至流式 Anthropic 模型 [{}]: model={}", modelAlias, config.modelName());
+            } else {
+                log.info("创建流式 Anthropic 模型 [{}]: model={}", modelAlias, config.modelName());
+            }
+            return AnthropicStreamingChatModel.builder()
+                    .apiKey(apiKey)
+                    .modelName(config.modelName())
+                    .logRequests(logReq)
+                    .logResponses(logResp)
+                    .build();
+        }
+        if ("openai".equals(provider)) {
+            if (fallback) {
+                log.warn("Agent 回退至流式 OpenAI 兼容模型 [{}]: baseUrl={}, model={}", modelAlias, config.baseUrl(), config.modelName());
+            } else {
+                log.info("创建流式 OpenAI 兼容模型 [{}]: baseUrl={}, model={}", modelAlias, config.baseUrl(), config.modelName());
+            }
+            OpenAiStreamingChatModel.OpenAiStreamingChatModelBuilder builder = OpenAiStreamingChatModel.builder()
+                    .baseUrl(config.baseUrl())
+                    .apiKey(apiKey)
+                    .modelName(config.modelName())
+                    .logRequests(logReq)
+                    .logResponses(logResp);
+            if (config.maxTokens() != null) {
+                builder.maxTokens(config.maxTokens());
+            }
+            // 推理回放（移植自 zero-code ReasoningStreamingChatModelConfig）：
+            // returnThinking 让 onPartialThinking 回调能拿到 reasoning_content；
+            // sendThinking 把上一轮思考回放进下一轮请求，保证多轮工具调用的思维链连续。
+            boolean returnThinking = config.returnThinking() == null || config.returnThinking();
+            boolean sendThinking = config.sendThinking() == null || config.sendThinking();
+            String thinkingField = config.thinkingField() == null || config.thinkingField().isBlank()
+                    ? "reasoning_content" : config.thinkingField();
+            builder.returnThinking(returnThinking);
+            builder.sendThinking(sendThinking, thinkingField);
+            // 关闭 HTTP 压缩，降低代理/DNS 抖动导致的流式中断概率
+            builder.customHeaders(Map.of("Accept-Encoding", "identity"));
+            return builder.build();
+        }
+        log.warn("流式模型 [{}] 的 provider [{}] 不支持，跳过。支持: openai, anthropic", modelAlias, provider);
+        return null;
     }
 
     // ======================== Agent 创建 ========================
@@ -242,6 +283,7 @@ public class AgentFactory {
         return AiServices.builder(CodeGenAgent.class)
                 .streamingChatModel(resolveStreamingModel(AgentType.CODE_GENERATION))
                 .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.CODE_GENERATION.getType()))
+                .chatMemoryProvider(id -> chatMemoryProvider.apply(id.toString() + "_vue-project"))
                 .build();
     }
 
@@ -268,7 +310,26 @@ public class AgentFactory {
         return AiServices.builder(IterationAgent.class)
                 .chatModel(resolveModel(AgentType.ITERATION_MODIFICATION))
                 .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.ITERATION_MODIFICATION.getType()))
-                .tools(fileTools, projectContextTools, iterationTools)
+                .build();
+    }
+
+    /**
+     * 创建对话式迭代编辑 Agent——带完整工具集的流式 agentic 循环。
+     *
+     * <p>工具集：FileTools(writeFile/patchFile/validateCode) + ProjectContextTools(readFileContext/readProjectContext)
+     * + UpdatePlanTool(updatePlan) + ExitTool(exit)。其中 UpdatePlanTool 与 PlanTracker 联动提供
+     * DAG 校验 + Nag 防跑偏，ExitTool 保证模型终止循环而非无限自说自话。
+     * 使用 {@code iteration-modification} 模型别名并走 reasoning 流式通道，
+     * 让迭代编辑也享受 reasoning_content 回放的思维链连续性。</p>
+     *
+     * @return 迭代编辑 Agent 实例
+     */
+    public IterationEditor createIterationEditor() {
+        return AiServices.builder(IterationEditor.class)
+                .streamingChatModel(resolveStreamingModel(AgentType.ITERATION_MODIFICATION))
+                .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.ITERATION_MODIFICATION.getType()))
+                .chatMemoryProvider(id -> chatMemoryProvider.apply(id.toString() + "_vue-project"))
+                .tools(fileTools, projectContextTools, updatePlanTool, exitTool)
                 .maxToolCallingRoundTrips(MAX_TOOL_ROUND_TRIPS)
                 .build();
     }

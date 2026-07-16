@@ -5,13 +5,18 @@ export type PipelineNodeName =
   | 'style_optimization'
   | 'build_verification'
   | 'preview_deploy'
+  | 'iteration_intent_analysis'
+  | 'project_context_load'
+  | 'modification_planning'
+  | 'code_patch'
+  | 'build_error_analysis'
   | 'iteration_intent'
   | 'code_locating'
   | 'modification_generation'
 
 export type SSETextType = 'TEXT' | 'JSON' | 'MARK_DOWN' | 'SQL' | 'HTML'
-export type ChecklistStage = 'idle' | 'running' | 'done' | 'error'
-export type WorkbenchMode = 'simple' | 'generation' | 'complete'
+export type ChecklistStage = 'idle' | 'pending' | 'running' | 'done' | 'error'
+export type WorkbenchMode = 'simple' | 'generation' | 'iteration' | 'complete'
 export type SandboxStatus = 'stopped' | 'starting' | 'running' | 'error'
 export type LogLevel = 'info' | 'success' | 'warn' | 'error' | 'debug'
 
@@ -89,11 +94,13 @@ export interface WorkbenchCoreState {
   logs: LogEntry[]
   snapshots: Record<string, string>
   nodeThinkings: Record<string, string>
+  visibleNodeNames: PipelineNodeName[]
 }
 
 export const pipelineNodeNames: PipelineNodeName[]
 export function getLanguageFromPath(path: string): string
 export function createInitialWorkbenchState(taskId?: string, prompt?: string): WorkbenchCoreState
+export function reducePipelineNodeStart(state: WorkbenchCoreState, data: { nodeName: PipelineNodeName; title?: string }): WorkbenchCoreState
 export function reduceGenerationMessage(state: WorkbenchCoreState, msg: SSEMessage): WorkbenchCoreState
 export function reduceGenerationComplete(state: WorkbenchCoreState, data: SSECompleteData): WorkbenchCoreState
 export function reduceGenerationError(state: WorkbenchCoreState, error: string): WorkbenchCoreState

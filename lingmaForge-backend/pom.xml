@@ -21,7 +21,7 @@
         <java.version>21</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
-        <langchain4j.version>1.16.2</langchain4j.version>
+        <langchain4j.version>1.17.2</langchain4j.version>
         <langgraph4j.version>1.8.19</langgraph4j.version>
         <lombok.version>1.18.34</lombok.version>
         <mybatis-plus.version>3.5.15</mybatis-plus.version>
@@ -60,6 +60,13 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+        <!-- WebFlux：提供 reactor (Flux/Mono) + ServerSentEvent 类型。
+             与 spring-boot-starter-web 共存时 Spring Boot 仍以 Servlet (MVC) 模式启动，
+             MVC 支持返回 Flux<ServerSentEvent> 作为响应式流式 SSE（经由 ReactiveTypeHandler 适配到 Servlet 异步）。 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-webflux</artifactId>
         </dependency>
         <!-- LangChain4j 核心库：ChatModel 接口、AiServices、@Tool 注解 -->
         <dependency>

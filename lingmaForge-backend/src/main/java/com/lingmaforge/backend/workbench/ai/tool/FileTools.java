@@ -10,6 +10,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.lingmaforge.backend.workbench.ai.observer.GenerationContext;
+import com.lingmaforge.backend.workbench.ai.plan.PlanTracker;
 import com.lingmaforge.backend.common.model.Patch;
 import com.lingmaforge.backend.workbench.service.ProjectFileService;
 
@@ -17,11 +18,16 @@ import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
 
 /**
- * 文件操作工具集，归属代码生成 / 样式优化 / 迭代修改 Agent。
+ * 文件操作工具集，仅归属样式优化 Agent（{@code StyleOptimizationAgent}）。
+ *
+ * <p>注意：代码生成节点（{@code CodeGenerationNode}）不挂工具——它在 Java 侧串行 spawn
+ * 流式生成并落盘，不走 agent 工具循环；迭代 pipeline 已收敛为结构化规划 + Java 确定性应用，
+ * 也不再通过 {@code IterationAgent.modify()} 触发工具。因此本工具集唯一可达路径是
+ * 样式优化阶段的 {@code agent.optimize(prompt)} agent-loop。</p>
  *
  * <p>包含三个 @Tool 方法：
  * <ul>
- *   <li>{@link #writeFile(String, String)} —— 写入完整文件（磁盘 + 数据库双写）</li>
+ *   <li>{@link #writeFile(String, String)} —— 写入完整文件（磁盘 + 数据库双写），含幂等去抖</li>
  *   <li>{@link #patchFile(String, List)} —— 增量修改文件（只改指定行）</li>
  *   <li>{@link #validateCode(String, String)} —— 校验代码质量（import 路径、export、类型）</li>
  * </ul>
@@ -39,9 +45,11 @@ public class FileTools {
     private static final List<String> EXTERNAL_PREFIXES = List.of("react", "react-", "@", "vue", "axios");
 
     private final ProjectFileService projectFileService;
+    private final PlanTracker planTracker;
 
-    public FileTools(ProjectFileService projectFileService) {
+    public FileTools(ProjectFileService projectFileService, PlanTracker planTracker) {
         this.projectFileService = projectFileService;
+        this.planTracker = planTracker;
     }
 
     /**
@@ -77,9 +85,24 @@ public class FileTools {
                 content.lines().count());
 
         Long projectId = GenerationContext.get().projectId();
+        // 推送 tool_call（调用中阶段，result=null）—— 前端实时可见"模型正在调用 writeFile"
+        emitToolCall("writeFile", "{\"path\":\"" + safePath(path) + "\"}", null);
+
+        // 幂等写（移植自 zero-code FileWriteTool 的去循环防抖设计）：
+        // 若已有文件与待写内容完全一致，则跳过落盘，直接返回，防止模型反复重写同一文件耗尽 token。
+        String existing = projectFileService.readFile(projectId, path);
+        if (existing != null && existing.equals(content)) {
+            String skip = "文件内容未变化，跳过写入: " + path;
+            emitToolCall("writeFile", "{\"path\":\"" + safePath(path) + "\"}", skip);
+            return skip;
+        }
+
         int lines = projectFileService.writeFile(projectId, path, content, "new");
         GenerationContext.get().emitter().emitFile(path, content, "new");
-        return "文件写入成功: " + path + "（" + lines + " 行）";
+        String result = withNag("文件写入成功: " + path + "（" + lines + " 行）");
+        // 推送 tool_call（完成阶段，result 非空）
+        emitToolCall("writeFile", "{\"path\":\"" + safePath(path) + "\"}", result);
+        return result;
     }
 
     /**
@@ -95,12 +118,17 @@ public class FileTools {
             @P("补丁列表，每个补丁含 line(行号)、old(旧行)、newContent(新行)") List<Patch> patches) {
         Long projectId = GenerationContext.get().projectId();
         if (patches == null || patches.isEmpty()) {
-            return "未提供补丁，文件未修改: " + path;
+            String nope = "未提供补丁，文件未修改: " + path;
+            emitToolCall("patchFile", "{\"path\":\"" + safePath(path) + "\"}", nope);
+            return nope;
         }
+        emitToolCall("patchFile", "{\"path\":\"" + safePath(path) + "\",\"patches\":" + patches.size() + "}", null);
         int applied = projectFileService.patchFile(projectId, path, patches);
         String content = projectFileService.readFile(projectId, path);
         GenerationContext.get().emitter().emitFile(path, content, "modified");
-        return "样式/迭代优化完成: " + applied + " 处修改已应用到 " + path;
+        String result = withNag("样式/迭代优化完成: " + applied + " 处修改已应用到 " + path);
+        emitToolCall("patchFile", "{\"path\":\"" + safePath(path) + "\"}", result);
+        return result;
     }
 
     /**
@@ -178,5 +206,45 @@ public class FileTools {
             return module.substring(2);
         }
         return dir + "/" + module.substring(2);
+    }
+
+    /**
+     * 推送 tool_call 事件（若当前线程未设置 GenerationContext 则安全跳过，
+     * 因为某些单元测试或离线调用没有发射器）。
+     */
+    private void emitToolCall(String name, String arguments, String result) {
+        try {
+            GenerationContext ctx = GenerationContext.get();
+            if (ctx != null && ctx.emitter() != null) {
+                ctx.emitter().emitToolCall(name /* id 用工具名简化 */, name, arguments, result);
+            }
+        } catch (IllegalStateException ignored) {
+            // 上下文未设置（非生成场景），忽略
+        }
+    }
+
+    /**
+     * 将 PlanTracker Nag 提醒追加到工具结果末尾。
+     * 每执行一次非 updatePlan 工具调用后通知 PlanTracker 递进 nag 计数器，
+     * 累计超过阈值时注入 Nag 提醒到 result 末尾，驱动模型更新计划进度。
+     */
+    private String withNag(String result) {
+        try {
+            GenerationContext ctx = GenerationContext.get();
+            String key = PlanTracker.key(ctx.projectId(), ctx.taskId());
+            planTracker.onToolExecuted(key);
+            String nag = planTracker.buildNagIfNeeded(key);
+            if (nag != null) {
+                return result + nag;
+            }
+        } catch (Exception ignored) {
+            // 上下文未设置时安全降级
+        }
+        return result;
+    }
+
+    /** 转义 path 中的双引号与反斜杠，便于嵌入 JSON 字面量。 */
+    private String safePath(String path) {
+        return path == null ? "" : path.replace("\\", "\\\\").replace("\"", "\\\"");
     }
 }

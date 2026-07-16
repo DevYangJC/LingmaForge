@@ -7,9 +7,13 @@ import static org.mockito.Mockito.mock;
 
 import com.lingmaforge.backend.workbench.ai.service.CodeGenAgent;
 import com.lingmaforge.backend.workbench.ai.service.ExecutionPlanner;
+import com.lingmaforge.backend.workbench.ai.service.IterationAgent;
 import com.lingmaforge.backend.workbench.ai.service.RequirementAnalyzer;
 import com.lingmaforge.backend.workbench.ai.tool.FileTools;
 import com.lingmaforge.backend.workbench.ai.tool.ProjectContextTools;
+import com.lingmaforge.backend.common.model.BuildErrorAnalysis;
+import com.lingmaforge.backend.common.model.IterationIntent;
+import com.lingmaforge.backend.common.model.ModificationPlan;
 import com.lingmaforge.backend.common.model.PlanResult;
 import com.lingmaforge.backend.common.model.RequirementSpec;
 import com.lingmaforge.backend.workbench.service.PromptTemplateLoader;
@@ -231,5 +235,22 @@ class AgentMockTest {
             log.info("--- 代码生成Agent Mock测试 ---");
             log.info("  [OK] 代码生成Agent mock流程完成");
         }
+    }
+
+    @Test
+    @DisplayName("迭代修改 Agent 暴露结构化意图、计划和构建错误分析方法")
+    void iterationAgentShouldExposeStructuredOperations() {
+        IterationAgent agent = mock(IterationAgent.class);
+        IterationIntent intent = new IterationIntent("feature", "增加登录按钮", java.util.List.of("src/App.vue"), true);
+        ModificationPlan plan = new ModificationPlan("更新首页", java.util.List.of(), java.util.List.of());
+        BuildErrorAnalysis analysis = new BuildErrorAnalysis("syntax", "模板语法错误", java.util.List.of("src/App.vue"), "修复标签闭合");
+
+        when(agent.analyzeIntent("把首页加登录按钮", "framework=vue-vite-ts")).thenReturn(intent);
+        when(agent.planModification("把首页加登录按钮", "framework=vue-vite-ts", intent)).thenReturn(plan);
+        when(agent.analyzeBuildError("TS1005", plan)).thenReturn(analysis);
+
+        assertThat(agent.analyzeIntent("把首页加登录按钮", "framework=vue-vite-ts")).isEqualTo(intent);
+        assertThat(agent.planModification("把首页加登录按钮", "framework=vue-vite-ts", intent)).isEqualTo(plan);
+        assertThat(agent.analyzeBuildError("TS1005", plan)).isEqualTo(analysis);
     }
 }

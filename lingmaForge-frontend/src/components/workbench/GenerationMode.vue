@@ -18,10 +18,15 @@ import type { TreeOption } from 'naive-ui'
 import { NTree } from 'naive-ui'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
+import { Icon, addCollection } from '@iconify/vue'
+import vscodeIcons from '@iconify-json/vscode-icons/icons.json'
 import { IMG } from '@/assets/images'
 import { useWorkbenchStore } from '@/stores/workbench'
 import TheHeader from '@/components/TheHeader.vue'
 import '@/styles/pages/workbench.css'
+
+/* ---------- 注册 vscode-icons 图标集（离线可用） ---------- */
+addCollection(vscodeIcons)
 
 const store = useWorkbenchStore()
 const {
@@ -118,12 +123,92 @@ const ntreeData = computed<TreeOption[]>(() => {
   return convert(fileTree.value || [])
 })
 
+/** 文件扩展名 → vscode-icons 图标名 */
+const FILE_ICON_MAP: Record<string, string> = {
+  tsx:       'vscode-icons:file-type-reactts',
+  ts:        'vscode-icons:file-type-typescript-official',
+  jsx:       'vscode-icons:file-type-reactjs',
+  js:        'vscode-icons:file-type-js-official',
+  mjs:       'vscode-icons:file-type-js-official',
+  cjs:       'vscode-icons:file-type-js-official',
+  vue:       'vscode-icons:file-type-vue',
+  css:       'vscode-icons:file-type-css',
+  scss:      'vscode-icons:file-type-scss',
+  less:      'vscode-icons:file-type-less',
+  html:      'vscode-icons:file-type-html',
+  json:      'vscode-icons:file-type-json-official',
+  json5:     'vscode-icons:file-type-json5',
+  md:        'vscode-icons:file-type-markdown',
+  markdown:  'vscode-icons:file-type-markdown',
+  png:       'vscode-icons:file-type-image',
+  jpg:       'vscode-icons:file-type-image',
+  jpeg:      'vscode-icons:file-type-image',
+  gif:       'vscode-icons:file-type-image',
+  webp:      'vscode-icons:file-type-webp',
+  svg:       'vscode-icons:file-type-svg',
+  ico:       'vscode-icons:file-type-favicon',
+  sql:       'vscode-icons:file-type-sql',
+  yml:       'vscode-icons:file-type-yaml',
+  yaml:      'vscode-icons:file-type-yaml',
+  toml:      'vscode-icons:file-type-toml',
+  txt:       'vscode-icons:file-type-text',
+  log:       'vscode-icons:file-type-log',
+  wasm:      'vscode-icons:file-type-wasm',
+  dockerfile:'vscode-icons:file-type-docker',
+}
+
+/** 特殊文件名（无标准扩展名）→ vscode-icons 图标名 */
+const SPECIAL_FILE_MAP: Record<string, string> = {
+  '.env':           'vscode-icons:file-type-dotenv',
+  '.env.local':     'vscode-icons:file-type-dotenv',
+  '.env.production':'vscode-icons:file-type-dotenv',
+  '.env.development':'vscode-icons:file-type-dotenv',
+  '.gitignore':     'vscode-icons:file-type-git',
+  '.gitattributes': 'vscode-icons:file-type-git',
+  '.dockerignore':  'vscode-icons:file-type-docker',
+  'dockerfile':     'vscode-icons:file-type-docker',
+  'license':        'vscode-icons:file-type-license',
+  'readme.md':      'vscode-icons:file-type-markdown',
+  'package.json':   'vscode-icons:file-type-npm',
+  'tsconfig.json':  'vscode-icons:file-type-tsconfig',
+  'vite.config.ts': 'vscode-icons:file-type-vite',
+  'vite.config.js': 'vscode-icons:file-type-vite',
+}
+
+const DEFAULT_FILE_ICON = 'vscode-icons:default-file'
+const FOLDER_ICON = 'vscode-icons:default-folder'
+
+function getFileIconName(name: string): string {
+  const lower = name.toLowerCase()
+
+  // 先匹配特殊文件名
+  if (SPECIAL_FILE_MAP[lower]) return SPECIAL_FILE_MAP[lower]
+
+  // 再按扩展名匹配
+  const idx = lower.lastIndexOf('.')
+  if (idx !== -1) {
+    const ext = lower.slice(idx + 1)
+    if (FILE_ICON_MAP[ext]) return FILE_ICON_MAP[ext]
+  }
+
+  return DEFAULT_FILE_ICON
+}
+
 function renderTreePrefix({ option }: { option: TreeOption }) {
-  const iconName = option.isLeaf ? 'file-code' : 'folder-open'
-  const iconColor = option.isLeaf ? 'var(--blue)' : '#ffa726'
-  return h('svg', { class: 'icon', style: { width: '14px', height: '14px', color: iconColor, flexShrink: '0' } }, [
-    h('use', { href: `#${iconName}` }),
-  ])
+  if (!option.isLeaf) {
+    return h(Icon, {
+      icon: FOLDER_ICON,
+      style: { width: '16px', height: '16px', flexShrink: '0' },
+    })
+  }
+
+  const name = String(option.label ?? option.key)
+  const iconName = getFileIconName(name)
+
+  return h(Icon, {
+    icon: iconName,
+    style: { width: '16px', height: '16px', flexShrink: '0' },
+  })
 }
 
 function renderTreeSuffix({ option }: { option: TreeOption }) {
@@ -406,7 +491,7 @@ onMounted(() => {
                       <div class="changes-list">
                         <div class="change-item" v-for="f in files.slice(0, 8)" :key="f.path">
                           <div class="change-file">
-                            <svg class="icon" style="color: var(--blue)"><use href="#file-code" /></svg>
+                            <Icon :icon="getFileIconName(f.path.split('/').pop() || f.path)" style="width: 14px; height: 14px; flex-shrink: 0" />
                             <span>{{ f.path }}</span>
                           </div>
                           <span class="change-tag" :class="{ m: f.status === 'modified', a: f.status === 'new' }">
@@ -570,7 +655,7 @@ onMounted(() => {
             <div v-show="previewTab === 'code'" class="code-editor-panel">
               <div class="editor-header">
                 <div class="editor-title">
-                  <svg class="icon" style="width: 13px; height: 13px; color: var(--blue)"><use href="#file-code" /></svg>
+                  <Icon v-if="activeFile?.name" :icon="getFileIconName(activeFile.name)" style="width: 16px; height: 16px; flex-shrink: 0" />
                   <span>{{ activeFile?.name || '未选择文件' }}</span>
                 </div>
                 <div class="editor-actions">

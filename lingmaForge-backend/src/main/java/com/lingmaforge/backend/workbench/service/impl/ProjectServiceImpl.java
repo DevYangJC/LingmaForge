@@ -10,6 +10,7 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +23,7 @@ import com.lingmaforge.backend.workbench.entity.GenerationTaskEntity;
 import com.lingmaforge.backend.workbench.entity.ProjectEntity;
 import com.lingmaforge.backend.workbench.entity.ProjectFileEntity;
 import com.lingmaforge.backend.workbench.mapper.ChatMessageMapper;
+import com.lingmaforge.backend.workbench.ai.memory.InMemoryChatMemoryStore;
 import com.lingmaforge.backend.workbench.mapper.GenerationTaskMapper;
 import com.lingmaforge.backend.workbench.mapper.ProjectFileMapper;
 import com.lingmaforge.backend.workbench.mapper.ProjectMapper;
@@ -29,6 +31,7 @@ import com.lingmaforge.backend.common.model.CreateProjectRequest;
 import com.lingmaforge.backend.common.model.ProjectContext;
 import com.lingmaforge.backend.common.model.UpdateProjectRequest;
 import com.lingmaforge.backend.workbench.service.ProjectService;
+import com.lingmaforge.backend.workbench.service.ProjectTemplateService;
 
 /**
  * 基于 MyBatis-Plus 的项目服务实现。
@@ -43,16 +46,22 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, ProjectEntity
     private final ProjectFileMapper projectFileMapper;
     private final ChatMessageMapper chatMessageMapper;
     private final GenerationTaskMapper generationTaskMapper;
+    private final ObjectProvider<ProjectTemplateService> projectTemplateServiceProvider;
     private final Path workspaceRoot;
+    private final InMemoryChatMemoryStore memoryStore;
 
     public ProjectServiceImpl(ProjectFileMapper projectFileMapper,
             ChatMessageMapper chatMessageMapper,
             GenerationTaskMapper generationTaskMapper,
-            @Value("${lingma.workspace-root:./workspace}") String workspaceRoot) {
+            ObjectProvider<ProjectTemplateService> projectTemplateServiceProvider,
+            @Value("${lingma.workspace-root:./workspace}") String workspaceRoot,
+            InMemoryChatMemoryStore memoryStore) {
         this.projectFileMapper = projectFileMapper;
         this.chatMessageMapper = chatMessageMapper;
         this.generationTaskMapper = generationTaskMapper;
+        this.projectTemplateServiceProvider = projectTemplateServiceProvider;
         this.workspaceRoot = Path.of(workspaceRoot).toAbsolutePath().normalize();
+        this.memoryStore = memoryStore;
     }
 
     @Override
@@ -60,10 +69,11 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, ProjectEntity
         ProjectEntity project = new ProjectEntity();
         project.setName(request.name());
         project.setDescription(request.description());
-        project.setFramework(request.framework() == null ? "react-vite-ts" : request.framework());
+        project.setFramework(request.framework() == null ? "vue-vite-ts" : request.framework());
         project.setStatus("draft");
         save(project);
         initWorkspace(project.getId());
+        initTemplate(project);
         log.info("创建项目成功: id={}, name={}", project.getId(), project.getName());
         return project;
     }
@@ -115,6 +125,18 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, ProjectEntity
         } catch (IOException e) {
             log.error("初始化项目工作区失败: projectId={}", projectId, e);
             throw new BusinessException("初始化项目工作区失败: " + e.getMessage(), e);
+        }
+    }
+
+    private void initTemplate(ProjectEntity project) {
+        ProjectTemplateService templateService = projectTemplateServiceProvider.getIfAvailable();
+        if (templateService == null) {
+            return;
+        }
+        int initialized = templateService.initialize(project.getId(), project.getFramework());
+        if (initialized > 0) {
+            log.info("项目模板初始化完成: projectId={}, framework={}, files={}",
+                    project.getId(), project.getFramework(), initialized);
         }
     }
 
@@ -191,8 +213,10 @@ public class ProjectServiceImpl extends ServiceImpl<ProjectMapper, ProjectEntity
         }
 
         // 5. 删除项目实体
-        removeById(projectId);
-        log.info("级联删除项目成功: id={}", projectId);
+removeById(projectId);
+        // 6. 清理对话记忆
+        memoryStore.deleteByPrefix(projectId + "_");
+        log.info("项目删除成功: id={}", projectId);
     }
 
     private List<String> extractDependencyKeys(String packageJson) {

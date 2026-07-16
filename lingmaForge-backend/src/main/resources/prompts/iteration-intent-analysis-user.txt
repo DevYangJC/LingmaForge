@@ -1,0 +1,6 @@
+用户修改请求：{{prompt}}
+
+项目上下文：
+{{projectContext}}
+
+请返回符合 IterationIntent 字段的 JSON：type、summary、targetFiles、requiresBuild。

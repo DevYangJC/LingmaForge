@@ -48,6 +48,12 @@ public record LingmaModelsProperties(
      * @param logRequests   是否打印请求日志，默认 false
      * @param logResponses  是否打印响应日志，默认 false
      * @param maxRetries    最大重试次数，默认 2
+     * @param maxTokens     流式模型单次最大输出 token（移植自 zero-code；未配置则用构建器默认）
+     * @param returnThinking 是否返回深度思考过程（DeepSeek reasoning_content）。
+     *                       仅 openai 流式模型生效；未配置时 openai 默认 true。
+     * @param sendThinking  是否在后续请求中回放 reasoning_content，保持多轮工具调用的思维链连续性。
+     *                       仅 openai 流式模型生效；未配置时默认 true。
+     * @param thinkingField  回放思考过程所用的字段名，默认 {@code reasoning_content}（DeepSeek 约定）。
      */
     public record ModelConfig(
             String baseUrl,
@@ -56,7 +62,11 @@ public record LingmaModelsProperties(
             String provider,
             Boolean logRequests,
             Boolean logResponses,
-            Integer maxRetries) {
+            Integer maxRetries,
+            Integer maxTokens,
+            Boolean returnThinking,
+            Boolean sendThinking,
+            String thinkingField) {
     }
 
     /**

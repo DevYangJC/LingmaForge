@@ -19,7 +19,12 @@ import com.lingmaforge.backend.workbench.ai.observer.GenerationContext;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamRegistry;
 import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenState;
+import com.lingmaforge.backend.workbench.ai.support.TemplateFilePolicy;
 import com.lingmaforge.backend.workbench.ai.service.CodeGenAgent;
+import com.lingmaforge.backend.workbench.ai.stream.StreamingBridge;
+import dev.langchain4j.memory.chat.MessageWindowChatMemory;
+import com.lingmaforge.backend.workbench.ai.memory.ContextCompactionService;
+import com.lingmaforge.backend.workbench.ai.stream.StreamingContext;
 import com.lingmaforge.backend.common.model.FilePlan;
 import com.lingmaforge.backend.common.model.GeneratedFile;
 import com.lingmaforge.backend.common.model.PlanResult;
@@ -49,19 +54,28 @@ public class CodeGenerationNode extends AbstractCodeGenNode {
     private final ProjectFileService projectFileService;
     private final ObjectMapper objectMapper;
     private final Executor executor;
+    private final StreamingBridge streamingBridge;
+    private final ContextCompactionService compactionService;
+    private final java.util.function.Function<String, MessageWindowChatMemory> chatMemoryProvider;
 
     public CodeGenerationNode(AgentFactory agentFactory,
             GenerationStreamRegistry streamRegistry,
             PromptTemplateLoader promptLoader,
             ProjectFileService projectFileService,
             ObjectMapper objectMapper,
-            @Qualifier(AsyncConfig.FILE_GEN_EXECUTOR) Executor executor) {
+            @Qualifier(AsyncConfig.FILE_GEN_EXECUTOR) Executor executor,
+            StreamingBridge streamingBridge,
+            ContextCompactionService compactionService,
+            java.util.function.Function<String, MessageWindowChatMemory> chatMemoryProvider) {
         super(streamRegistry);
         this.agent = agentFactory.createCodeGenAgent();
         this.promptLoader = promptLoader;
         this.projectFileService = projectFileService;
         this.objectMapper = objectMapper;
         this.executor = executor;
+        this.streamingBridge = streamingBridge;
+        this.compactionService = compactionService;
+        this.chatMemoryProvider = chatMemoryProvider;
     }
 
     /**
@@ -85,7 +99,9 @@ public class CodeGenerationNode extends AbstractCodeGenNode {
                         "构建失败，正在修复代码（第 " + retryCount + " 次重试）...", "TEXT");
             }
 
-            List<FilePlan> filePlans = planResult.files();
+            List<FilePlan> filePlans = planResult.files().stream()
+                    .filter(filePlan -> !TemplateFilePolicy.isProtectedTemplateFile(filePlan.path()))
+                    .toList();
             String taskId = state.taskId().orElse("");
 
             // 1. 构建并行 CompletableFuture 任务列表
@@ -95,6 +111,11 @@ public class CodeGenerationNode extends AbstractCodeGenNode {
                     : filePlans.stream()
                         .filter(fp -> shouldRegenerate(fp, buildError, projectId))
                         .toList();
+
+            // 在并行生成前触发一次记忆压缩（避免多文件并发写入 store 导致竞态）
+            String memoryKey = projectId + "_vue-project";
+            compactionService.autoCompactIfNeeded(
+                    chatMemoryProvider.apply(memoryKey), memoryKey);
 
             List<CompletableFuture<Void>> futures = filesToGenerate.stream()
                     .filter(filePlan -> buildError == null || shouldRegenerate(filePlan, buildError, projectId))
@@ -161,40 +182,21 @@ public class CodeGenerationNode extends AbstractCodeGenNode {
 
         CompletableFuture<String> streamFuture = new CompletableFuture<>();
         StringBuilder codeBuilder = new StringBuilder();
-        final boolean[] stopped = {false};
 
-        // 订阅流式大模型输出并逐 Token 推送给前端
-        agent.generate(prompt)
-                .onPartialThinking(thinking -> {
-                    // 每收到一个 thinking token 时检查停止信号
-                    if (getStreamRegistry().isStopRequested(taskId)) {
-                        stopped[0] = true;
-                        streamFuture.complete(codeBuilder.toString());
-                        return;
-                    }
-                    emitter.emitThinking(NODE_NAME, thinking.text());
+        StreamingContext ctx = StreamingContext.builder()
+                .emitter(emitter)
+                .nodeName(NODE_NAME)
+                .taskId(taskId)
+                .stopRegistry(getStreamRegistry())
+                .onToken(t -> {
+                    emitter.emitFileToken(filePlan.path(), t);
+                    codeBuilder.append(t);
                 })
-                .onPartialResponse(token -> {
-                    // 每收到一个代码 token 时检查停止信号
-                    if (getStreamRegistry().isStopRequested(taskId)) {
-                        stopped[0] = true;
-                        streamFuture.complete(codeBuilder.toString());
-                        return;
-                    }
-                    emitter.emitFileToken(filePlan.path(), token);
-                    codeBuilder.append(token);
-                })
-                .onCompleteResponse(chatResponse -> {
-                    if (!stopped[0]) {
-                        streamFuture.complete(codeBuilder.toString());
-                    }
-                })
-                .onError(error -> {
-                    if (!stopped[0]) {
-                        streamFuture.completeExceptionally(error);
-                    }
-                })
-                .start();
+                .onComplete(() -> streamFuture.complete(codeBuilder.toString()))
+                .onStop(text -> streamFuture.complete(text))
+                .build();
+
+        streamingBridge.bridge(agent.generate(projectId, prompt), ctx);
 
         try {
             // 阻塞当前文件的线程，直至当前文件流式输送完毕

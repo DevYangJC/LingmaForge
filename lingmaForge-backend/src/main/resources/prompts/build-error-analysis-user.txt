@@ -1,0 +1,7 @@
+构建日志：
+{{buildLog}}
+
+本轮修改计划：
+{{modificationPlan}}
+
+请判断 Vue/Vite 构建失败的最可能原因，并给出下一轮最小修复建议。

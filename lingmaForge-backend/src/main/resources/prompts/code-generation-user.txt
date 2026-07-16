@@ -1,13 +1,13 @@
-## 项目概述
+## 项目概览
 应用名称：{{appName}}
 描述：{{description}}
 
 ## 当前任务
-请生成文件: {{filePath}}
-文件类型: {{fileType}}
+请生成文件：{{filePath}}
+文件类型：{{fileType}}
 文件描述：{{fileDescription}}
 
-## 可用上下文（已生成的依赖文件）
+## 可用上下文（模板文件和已生成依赖文件）
 {{fileContext}}
 
 ## 需求规范（来自需求分析）

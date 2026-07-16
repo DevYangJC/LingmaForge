@@ -102,6 +102,15 @@ lingma:
       log-requests: true
       log-responses: true
       max-retries: 2
+      # ---- 推理流式（移植自 zero-code ReasoningStreamingChatModelConfig）----
+      # 单次最大输出 token
+      max-tokens: 32768
+      # 返回 reasoning_content 思考分片，token 级流式推送 thinking 事件
+      return-thinking: true
+      # 在后续工具调用请求中回放 reasoning_content，保持多轮思维链连续
+      send-thinking: true
+      # 回放思考使用的字段名（DeepSeek 约定为 reasoning_content）
+      thinking-field: reasoning_content
 
     # ---- 通义千问 Qwen3-Coder-Plus（代码专用备份） ----
     # 价格: ~+00.0035 / 1K input tokens | 上下文: 128K
@@ -183,3 +192,11 @@ lingma:
   pipeline:
     # 构建失败后最多回退重试次数
     max-retry-count: 2
+
+  # ---- 对话上下文压缩（移植自 zero-code ContextCompactionProperties）----
+  compaction:
+    # 触发自动压缩的 token 估算阈值（chars/3）。
+    # DeepSeek V4-Pro 最大上下文 1M tokens，80% = 800k。可随模型调整。
+    token-threshold: 800000
+    # 送入摘要 LLM 的最大字符数，防止摘要请求本身超长。
+    max-summary-input-chars: 300000
