@@ -51,9 +51,6 @@ public class BuildErrorAnalysisNode extends AbstractCodeGenNode {
             ModificationPlan plan = state.modificationPlan()
                     .orElseGet(() -> new ModificationPlan("", List.of(), List.of()));
             BuildErrorAnalysis analysis = iterationAgent.analyzeBuildError(buildLog, plan);
-            if (emitter != null) {
-                emitter.emitNode(NODE_NAME, "已完成构建错误分析：" + analysis.summary(), "TEXT");
-            }
             return Map.of(CodeGenState.BUILD_ERROR_ANALYSIS, analysis);
         } finally {
             completeNode(emitter, NODE_NAME);

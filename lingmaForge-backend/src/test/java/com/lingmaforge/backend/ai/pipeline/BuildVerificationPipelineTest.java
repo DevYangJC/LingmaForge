@@ -20,10 +20,8 @@ import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamRegistry;
 import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenPipeline;
 import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenState;
 import com.lingmaforge.backend.workbench.ai.service.CodeGenAgent;
-import com.lingmaforge.backend.workbench.ai.service.ExecutionPlanner;
 import com.lingmaforge.backend.workbench.ai.service.IterationAgent;
 import com.lingmaforge.backend.workbench.ai.service.RequirementAnalyzer;
-import com.lingmaforge.backend.workbench.ai.service.StyleOptimizationAgent;
 import com.lingmaforge.backend.workbench.ai.tool.FileTools;
 import com.lingmaforge.backend.workbench.ai.tool.ProjectContextTools;
 import com.lingmaforge.backend.workbench.service.*;
@@ -314,12 +312,8 @@ class BuildVerificationPipelineTest {
         // 全部节点用 mock
         RequirementAnalysisNode mockRequirementNode =
                 org.mockito.Mockito.mock(RequirementAnalysisNode.class);
-        ExecutionPlanningNode mockPlanningNode =
-                org.mockito.Mockito.mock(ExecutionPlanningNode.class);
         CodeGenerationNode mockCodeGenNode =
                 org.mockito.Mockito.mock(CodeGenerationNode.class);
-        StyleOptimizationNode mockStyleNode =
-                org.mockito.Mockito.mock(StyleOptimizationNode.class);
         PreviewDeployNode mockPreviewNode =
                 org.mockito.Mockito.mock(PreviewDeployNode.class);
 
@@ -327,8 +321,8 @@ class BuildVerificationPipelineTest {
         BuildVerificationNode buildNode = new BuildVerificationNode(sandboxService, streamRegistry);
 
         return new CodeGenPipeline(
-                mockRequirementNode, mockPlanningNode,
-                mockCodeGenNode, mockStyleNode,
+                mockRequirementNode, 
+                mockCodeGenNode, 
                 buildNode, mockPreviewNode,
                 streamRegistry, 2);
     }

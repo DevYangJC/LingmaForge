@@ -6,6 +6,7 @@ import java.util.function.Function;
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 
 import dev.langchain4j.data.message.ChatMessage;
+import dev.langchain4j.data.message.ToolExecutionResultMessage;
 import dev.langchain4j.model.chat.ChatRequestOptions;
 import dev.langchain4j.model.chat.StreamingChatModel;
 import dev.langchain4j.model.chat.request.ChatRequest;
@@ -20,11 +21,9 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.lingmaforge.backend.workbench.ai.service.CodeGenAgent;
-import com.lingmaforge.backend.workbench.ai.service.ExecutionPlanner;
 import com.lingmaforge.backend.workbench.ai.service.IterationAgent;
 import com.lingmaforge.backend.workbench.ai.service.IterationEditor;
 import com.lingmaforge.backend.workbench.ai.service.RequirementAnalyzer;
-import com.lingmaforge.backend.workbench.ai.service.StyleOptimizationAgent;
 import com.lingmaforge.backend.workbench.ai.tool.FileTools;
 import com.lingmaforge.backend.workbench.ai.tool.ProjectContextTools;
 import com.lingmaforge.backend.workbench.ai.tool.UpdatePlanTool;
@@ -256,21 +255,12 @@ public class AgentFactory {
     public RequirementAnalyzer createRequirementAnalyzer() {
         return AiServices.builder(RequirementAnalyzer.class)
                 .chatModel(resolveModel(AgentType.REQUIREMENT_ANALYSIS))
+                .streamingChatModel(resolveStreamingModel(AgentType.REQUIREMENT_ANALYSIS))
                 .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.REQUIREMENT_ANALYSIS.getType()))
+                .chatMemoryProvider(id -> chatMemoryProvider.apply(id.toString() + "_vue-project"))
                 .build();
     }
 
-    /**
-     * 创建执行规划 Agent（结构化输出，无工具）。
-     *
-     * @return 执行规划 Agent 实例
-     */
-    public ExecutionPlanner createExecutionPlanner() {
-        return AiServices.builder(ExecutionPlanner.class)
-                .chatModel(resolveModel(AgentType.EXECUTION_PLANNING))
-                .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.EXECUTION_PLANNING.getType()))
-                .build();
-    }
 
     /**
      * 创建代码生成 Agent，注册 writeFile / readFileContext / validateCode 工具。
@@ -284,25 +274,16 @@ public class AgentFactory {
                 .streamingChatModel(resolveStreamingModel(AgentType.CODE_GENERATION))
                 .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.CODE_GENERATION.getType()))
                 .chatMemoryProvider(id -> chatMemoryProvider.apply(id.toString() + "_vue-project"))
-                .build();
-    }
-
-    /**
-     * 创建样式优化 Agent，注册 readFileContext / patchFile 工具。
-     *
-     * @return 样式优化 Agent 实例
-     */
-    public StyleOptimizationAgent createStyleOptimizationAgent() {
-        return AiServices.builder(StyleOptimizationAgent.class)
-                .chatModel(resolveModel(AgentType.STYLE_OPTIMIZATION))
-                .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.STYLE_OPTIMIZATION.getType()))
-                .tools(fileTools, projectContextTools)
+                .tools(fileTools, projectContextTools, updatePlanTool, exitTool)
+                .hallucinatedToolNameStrategy(toolRequest -> ToolExecutionResultMessage.from(
+                        toolRequest, "Error: there is no tool called " + toolRequest.name()))
                 .maxToolCallingRoundTrips(MAX_TOOL_ROUND_TRIPS)
                 .build();
     }
 
+    // ======================== 占位模型 ========================
+
     /**
-     * 创建迭代修改 Agent，注册 readFileContext / searchCode / patchFile / writeFile 工具。
      *
      * @return 迭代修改 Agent 实例
      */
@@ -330,6 +311,8 @@ public class AgentFactory {
                 .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.ITERATION_MODIFICATION.getType()))
                 .chatMemoryProvider(id -> chatMemoryProvider.apply(id.toString() + "_vue-project"))
                 .tools(fileTools, projectContextTools, updatePlanTool, exitTool)
+                .hallucinatedToolNameStrategy(toolRequest -> ToolExecutionResultMessage.from(
+                        toolRequest, "Error: there is no tool called " + toolRequest.name()))
                 .maxToolCallingRoundTrips(MAX_TOOL_ROUND_TRIPS)
                 .build();
     }

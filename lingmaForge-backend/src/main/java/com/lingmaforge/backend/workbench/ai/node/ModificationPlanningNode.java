@@ -60,9 +60,6 @@ public class ModificationPlanningNode extends AbstractCodeGenNode {
             log.info("[{}] 开始生成迭代修改计划: intentType={}, hasBuildErrorAnalysis={}",
                     state.taskId().orElse(""), intent.type(), buildErrorAnalysis != null);
             ModificationPlan plan = iterationAgent.planModification(prompt, projectContext, intent, buildErrorAnalysis);
-            if (emitter != null) {
-                emitter.emitNode(NODE_NAME, "已生成修改计划：" + plan.summary(), "TEXT");
-            }
             return Map.of(CodeGenState.MODIFICATION_PLAN, plan);
         } finally {
             completeNode(emitter, NODE_NAME);

@@ -44,9 +44,7 @@ const stageLabels: Record<PipelineNodeName, string> = {
 
 const generationPipelineNodes: PipelineNodeName[] = [
   'requirement_analysis',
-  'execution_planning',
   'code_generation',
-  'style_optimization',
   'build_verification',
   'preview_deploy',
 ]
@@ -201,6 +199,7 @@ export const useWorkbenchStore = defineStore('workbench', () => {
   const editorMode = computed(() => coreState.value.editorMode)
   const diffFile = computed(() => coreState.value.diffFile)
   const buildTime = computed(() => coreState.value.buildTime)
+  const toolCalls = computed(() => coreState.value.toolCalls)
   const activePipelineNodes = computed(() => {
     const visibleNodeNames = ((coreState.value as any).visibleNodeNames || []) as PipelineNodeName[]
     const hasIterationNode = visibleNodeNames.some((nodeName) => iterationPipelineNodes.includes(nodeName))
@@ -259,7 +258,21 @@ export const useWorkbenchStore = defineStore('workbench', () => {
   // Token 流性能优化：批量节流缓冲区，防止高并发下主线程 DOM 渲染卡死与连接重置
   let fileTokenBuffer: Record<string, string> = {}
   let thinkingBuffer: Record<string, string> = {}
+  let logsBuffer: any[] = []
   let flushTimer: any = null
+
+  function pushLog(logItem: {
+    level: 'info' | 'success' | 'error'
+    source: 'system' | 'build' | 'runtime' | 'deploy'
+    message: string
+  }) {
+    logsBuffer.push({
+      id: 'log-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+      timestamp: Date.now(),
+      ...logItem,
+    })
+    scheduleBufferFlush()
+  }
 
   function flushBuffer() {
     if (flushTimer) {
@@ -269,7 +282,7 @@ export const useWorkbenchStore = defineStore('workbench', () => {
 
     const filesKeys = Object.keys(fileTokenBuffer)
     const thinkingKeys = Object.keys(thinkingBuffer)
-    if (filesKeys.length === 0 && thinkingKeys.length === 0) return
+    if (filesKeys.length === 0 && thinkingKeys.length === 0 && logsBuffer.length === 0) return
 
     // 1. 批量刷新文件内容
     if (filesKeys.length > 0) {
@@ -307,6 +320,12 @@ export const useWorkbenchStore = defineStore('workbench', () => {
       ;(coreState.value as any).nodeThinkings = thinkings
       thinkingBuffer = {}
     }
+
+    // 3. 批量刷新日志
+    if (logsBuffer.length > 0) {
+      coreState.value.logs = [...(coreState.value.logs || []), ...logsBuffer]
+      logsBuffer = []
+    }
   }
 
   function scheduleBufferFlush() {
@@ -325,10 +344,11 @@ export const useWorkbenchStore = defineStore('workbench', () => {
 
   function appendNodeActivity(nodeName: PipelineNodeName | null, text: string) {
     if (!nodeName || !text) return
-    const thinkings = { ...(coreState.value as any).nodeThinkings }
-    const prefix = thinkings[nodeName] ? '\n' : ''
-    thinkings[nodeName] = `${thinkings[nodeName] || ''}${prefix}${text}`
-    ;(coreState.value as any).nodeThinkings = thinkings
+    const currentBufferText = thinkingBuffer[nodeName] || ''
+    const currentStateText = (coreState.value as any).nodeThinkings?.[nodeName] || ''
+    const prefix = (currentBufferText || currentStateText) ? '\n' : ''
+    thinkingBuffer[nodeName] = `${currentBufferText}${prefix}${text}`
+    scheduleBufferFlush()
   }
 
   function clearTypewriterTimers() {
@@ -411,11 +431,9 @@ export const useWorkbenchStore = defineStore('workbench', () => {
       onData: (d) => applyMessage(asSseMessage(taskId, d.nodeName, d.text, 'TEXT')),
       onNodeStart: (d) => {
         coreState.value = reducePipelineNodeStart(coreState.value, { nodeName: d.nodeName, title: d.title })
-        coreState.value.logs.push({
-          id: 'log-' + Date.now(),
-          timestamp: Date.now(),
-          level: 'info' as const,
-          source: 'system' as const,
+        pushLog({
+          level: 'info',
+          source: 'system',
           message: '步骤 [' + (stageLabels[d.nodeName] || d.nodeName) + '] 开始执行...',
         })
       },
@@ -424,11 +442,9 @@ export const useWorkbenchStore = defineStore('workbench', () => {
         updatedChecklist[d.nodeName] = 'done'
         coreState.value.checklist = updatedChecklist
         flushBuffer()
-        coreState.value.logs.push({
-          id: 'log-' + Date.now(),
-          timestamp: Date.now(),
-          level: 'success' as const,
-          source: 'system' as const,
+        pushLog({
+          level: 'success',
+          source: 'system',
           message: 'Step [' + (stageLabels[d.nodeName] || d.nodeName) + '] done.',
         })
       },
@@ -445,11 +461,9 @@ export const useWorkbenchStore = defineStore('workbench', () => {
       },
       onFileComplete: (d) => {
         appendNodeActivity(currentRunningNode(), '工具调用：文件生成完成 ' + d.path)
-        coreState.value.logs.push({
-          id: 'log-' + Date.now(),
-          timestamp: Date.now(),
-          level: 'success' as const,
-          source: 'build' as const,
+        pushLog({
+          level: 'success',
+          source: 'build',
           message: '文件 [' + (d.path.split('/').pop() || d.path) + '] 生成落盘成功。',
         })
       },
@@ -491,26 +505,21 @@ export const useWorkbenchStore = defineStore('workbench', () => {
         } else if (text.includes('构建') || text.includes('npm install') || text.includes('依赖') || text.includes('Build')) {
           source = 'build'
         }
-        coreState.value.logs.push({
-          id: 'log-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-          timestamp: Date.now(),
+        pushLog({
           level,
           source,
           message: text,
         })
       },
       onToolCall: (d) => {
-        const label = d.result == null
-          ? '调用工具 ' + d.name + '…'
-          : '工具 ' + d.name + ' 完成'
-        appendNodeActivity(currentRunningNode(), label)
-        coreState.value.logs.push({
-          id: 'log-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-          timestamp: Date.now(),
-          level: 'info' as const,
-          source: 'build' as const,
-          message: label + (d.result ? '：' + d.result.slice(0, 120) : ''),
-        })
+        const toolId = d.id || d.name + '-' + Date.now()
+        if (d.result == null) {
+          const calls = coreState.value.toolCalls || []
+          coreState.value.toolCalls = [...calls, { id: toolId, name: d.name, arguments: d.arguments || '', result: null, status: 'calling', nodeName: currentRunningNode() ?? undefined, timestamp: Date.now() }]
+        } else {
+          const calls = coreState.value.toolCalls || []
+          coreState.value.toolCalls = calls.map((tc) => tc.id === toolId ? { ...tc, result: d.result, status: 'done' as const } : tc)
+        }
       },
       onDone: (data) => {
         applyComplete({ threadId: taskId, url: data.url, port: data.port, buildTime: data.buildTime })
@@ -539,11 +548,9 @@ export const useWorkbenchStore = defineStore('workbench', () => {
       onData: (d) => applyMessage(asSseMessage(taskId, d.nodeName, d.text, 'TEXT')),
       onNodeStart: (d) => {
         coreState.value = reducePipelineNodeStart(coreState.value, { nodeName: d.nodeName, title: d.title })
-        coreState.value.logs.push({
-          id: 'log-' + Date.now(),
-          timestamp: Date.now(),
-          level: 'info' as const,
-          source: 'system' as const,
+        pushLog({
+          level: 'info',
+          source: 'system',
           message: '步骤 [' + (stageLabels[d.nodeName] || d.nodeName) + '] 开始执行...',
         })
       },
@@ -608,24 +615,21 @@ export const useWorkbenchStore = defineStore('workbench', () => {
       },
       onLog: (d) => {
         appendNodeActivity(currentRunningNode(), '工具调用：' + (d.text || ''))
-        coreState.value.logs.push({
-          id: 'log-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-          timestamp: Date.now(),
-          level: 'info' as const,
-          source: 'build' as const,
+        pushLog({
+          level: 'info',
+          source: 'build',
           message: d.text || '',
         })
       },
       onToolCall: (d) => {
-        const label = d.result == null ? '调用工具 ' + d.name + '…' : '工具 ' + d.name + ' 完成'
-        appendNodeActivity(currentRunningNode(), label)
-        coreState.value.logs.push({
-          id: 'log-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
-          timestamp: Date.now(),
-          level: 'info' as const,
-          source: 'build' as const,
-          message: label + (d.result ? '：' + d.result.slice(0, 120) : ''),
-        })
+        const toolId = d.id || d.name + '-' + Date.now()
+        if (d.result == null) {
+          const calls = coreState.value.toolCalls || []
+          coreState.value.toolCalls = [...calls, { id: toolId, name: d.name, arguments: d.arguments || '', result: null, status: 'calling', nodeName: currentRunningNode() ?? undefined, timestamp: Date.now() }]
+        } else {
+          const calls = coreState.value.toolCalls || []
+          coreState.value.toolCalls = calls.map((tc) => tc.id === toolId ? { ...tc, result: d.result, status: 'done' as const } : tc)
+        }
       },
       onDone: (data) => {
         applyComplete({ threadId: taskId, url: data.url, port: data.port, buildTime: data.buildTime })
@@ -691,6 +695,27 @@ export const useWorkbenchStore = defineStore('workbench', () => {
       }
       
       await syncSandboxStatus(idStr)
+
+      // 加载历史对话并映射到前端 state
+      const msgs = await projectApi.getMessages(idStr)
+      if (msgs && msgs.length > 0) {
+        coreState.value.chatMessages = msgs.map((m: any) => ({
+          id: String(m.id),
+          role: m.role as 'user' | 'assistant' | 'system',
+          content: m.content || '',
+          contentType: 'TEXT' as const,
+          timestamp: m.createdAt ? new Date(m.createdAt).getTime() : Date.now(),
+        }))
+        const firstUser = coreState.value.chatMessages.find((m) => m.role === 'user')
+        if (firstUser) coreState.value.prompt = firstUser.content
+      } else {
+        coreState.value.chatMessages = []
+      }
+      
+      // 清空旧项目的流水线节点展示，避免残留
+      if ((coreState.value as any).visibleNodeNames) {
+        (coreState.value as any).visibleNodeNames = []
+      }
     } catch (e) {
       console.error('加载项目详情失败:', e)
     }
@@ -902,6 +927,7 @@ export const useWorkbenchStore = defineStore('workbench', () => {
     editorMode,
     diffFile,
     buildTime,
+    toolCalls,
     checklistItems,
     fileTree,
     pipelineNodeNames,

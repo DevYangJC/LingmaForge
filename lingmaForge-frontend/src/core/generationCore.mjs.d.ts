@@ -64,6 +64,16 @@ export interface LogEntry {
   message: string
 }
 
+export interface ToolCallEntry {
+  id: string
+  name: string
+  arguments: string
+  result: string | null
+  status: 'calling' | 'done'
+  nodeName?: PipelineNodeName
+  timestamp: number
+}
+
 export interface FileModification {
   path: string
   type?: 'patch' | 'replace'
@@ -95,6 +105,7 @@ export interface WorkbenchCoreState {
   snapshots: Record<string, string>
   nodeThinkings: Record<string, string>
   visibleNodeNames: PipelineNodeName[]
+  toolCalls: ToolCallEntry[]
 }
 
 export const pipelineNodeNames: PipelineNodeName[]

@@ -4,6 +4,8 @@ import java.io.Serializable;
 import java.util.List;
 import java.util.Map;
 
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
+
 /**
  * AI 分析生成的结构化应用需求。
  *
@@ -17,9 +19,9 @@ import java.util.Map;
 public record RequirementSpec(
         String appName,
         String description,
-        List<PageSpec> pages,
-        List<ApiSpec> apis,
-        List<String> features,
+        @JsonDeserialize(using = RobustListDeserializer.class) List<PageSpec> pages,
+        @JsonDeserialize(using = RobustListDeserializer.class) List<ApiSpec> apis,
+        @JsonDeserialize(using = StringOrObjectListDeserializer.class) List<String> features,
         StyleSpec style) implements Serializable {
 
     private static final long serialVersionUID = 1L;
@@ -32,7 +34,11 @@ public record RequirementSpec(
      * @param description 页面描述
      * @param components  页面包含的组件列表
      */
-    public record PageSpec(String name, String route, String description, List<String> components)
+    public record PageSpec(
+            String name, 
+            String route, 
+            String description, 
+            @JsonDeserialize(using = StringOrObjectListDeserializer.class) List<String> components)
             implements Serializable {
 
         private static final long serialVersionUID = 1L;
@@ -67,7 +73,7 @@ public record RequirementSpec(
      * @param layout    布局模式（single-page / multi-page / dashboard）
      * @param fontFamily 字体族
      */
-    public record StyleSpec(String theme, String themeName, String layout, String fontFamily)
+    public record StyleSpec(Object theme, Object themeName, Object layout, Object fontFamily)
             implements Serializable {
 
         private static final long serialVersionUID = 1L;

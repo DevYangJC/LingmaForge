@@ -12,10 +12,10 @@
  *   - 预览      → store.previewUrl (iframe)
  *   - 工具栏    → store.projectId / isGenerating / sandboxStatus
  */
-import { computed, h, nextTick, onMounted, ref } from 'vue'
+import { computed, h, nextTick, onMounted, ref, watch } from 'vue'
 import { storeToRefs } from 'pinia'
 import type { TreeOption } from 'naive-ui'
-import { NTree } from 'naive-ui'
+import { NTree, NCode } from 'naive-ui'
 import { Splitpanes, Pane } from 'splitpanes'
 import 'splitpanes/dist/splitpanes.css'
 import { Icon, addCollection } from '@iconify/vue'
@@ -46,6 +46,7 @@ const {
   checklistItems,
   fileTree,
   projects,
+  toolCalls,
 } = storeToRefs(store)
 
 /* ---------- 本地 UI 状态 ---------- */
@@ -57,12 +58,14 @@ const chatBodyRef = ref<HTMLDivElement | null>(null)
 const selectedFileKey = ref<string | null>(null)
 
 const expandedNodes = ref<Record<string, boolean>>({})
-function toggleNodeExpand(nodeName: string) {
-  expandedNodes.value[nodeName] = !expandedNodes.value[nodeName]
-}
 function isNodeExpanded(item: any) {
-  if (item.status === 'running') return true
-  return expandedNodes.value[item.nodeName] || false
+  if (expandedNodes.value[item.nodeName] !== undefined) {
+    return expandedNodes.value[item.nodeName]
+  }
+  return item.status === 'running' || item.status === 'done'
+}
+function toggleNodeExpand(item: any) {
+  expandedNodes.value[item.nodeName] = !isNodeExpanded(item)
 }
 
 /* ---------- 计算属性 ---------- */
@@ -108,6 +111,24 @@ const displayMessages = computed(() => {
   // 第一条是 user prompt，在模板中单独展示
   return chatMessages.value.slice(1)
 })
+
+/** nodeName }}} */
+function itemToolCalls(nodeName: string) {
+  const calls = (toolCalls.value || []).filter((tc) => tc.nodeName === nodeName || !tc.nodeName)
+  return calls
+}
+
+/** format tool name */
+function formatToolName(name: string): string {
+  const map = { writeFile: 'Write File', readFileContext: 'Read Files', readProjectContext: 'Read Context', patchFile: 'Edit File', updatePlan: 'Update Plan', exit: 'Exit' }
+  return (map as Record<string, string>)[name] ?? name
+}
+
+/** format result */
+function formatToolResult(text: string | null): string {
+  if (!text) return ''
+  return text.length > 300 ? text.slice(0, 300) + '...(truncated)' : text
+}
 
 /* ---------- NTree 文件树转换 ---------- */
 const ntreeData = computed<TreeOption[]>(() => {
@@ -286,6 +307,27 @@ function formatTime(ts: number) {
 onMounted(() => {
   store.loadProjects()
 })
+
+/* ---------- 自动滚动 ---------- */
+watch(
+  () => [chatMessages.value, toolCalls.value, visibleChecklist.value],
+  () => {
+    nextTick(() => {
+      if (chatBodyRef.value) {
+        chatBodyRef.value.scrollTo({
+          top: chatBodyRef.value.scrollHeight,
+          behavior: isGenerating.value ? 'auto' : 'smooth',
+        })
+        
+        const thinkingContents = chatBodyRef.value.querySelectorAll('.thinking-content')
+        thinkingContents.forEach((el) => {
+          el.scrollTop = el.scrollHeight
+        })
+      }
+    })
+  },
+  { deep: true }
+)
 </script>
 
 <template>
@@ -464,22 +506,58 @@ onMounted(() => {
                           </span>
                         </div>
 
-                        <!-- 展开/折叠的思考过程卡片 -->
-                        <div
-                          v-if="item.thinking"
-                          class="thinking-collapsible-card"
-                          :class="{ collapsed: !isNodeExpanded(item) }"
-                          @click="item.status === 'done' && toggleNodeExpand(item.nodeName)"
-                        >
-                          <div class="thinking-header">
-                            <svg class="icon brain-icon" style="width: 12px; height: 12px; color: var(--blue)"><use href="#file-code" /></svg>
-                            <span>思考深度</span>
-                            <span class="collapse-icon">
-                              {{ !isNodeExpanded(item) ? '展开 +' : '收起 -' }}
-                            </span>
+                        <!-- 展开/折叠的思考过程 + 工具调用 -->
+                        <div v-if="item.thinking || itemToolCalls(item.nodeName).length > 0" class="node-detail-area">
+                          <!-- 工具调用卡片（带图标） -->
+                          <div v-for="tc in itemToolCalls(item.nodeName)" :key="tc.id" class="tool-call-card" :class="{ calling: tc.status === 'calling', done: tc.status === 'done' }">
+                            <div class="tool-call-header">
+                              <svg class="icon tool-icon" :class="{ spinning: tc.status === 'calling' }">
+                                <use :href="tc.status === 'calling' ? '#refresh' : '#check'" />
+                              </svg>
+                              <span class="tool-name">{{ formatToolName(tc.name) }}</span>
+                              <span class="tool-args" v-if="tc.arguments && tc.arguments.length < 120">({{ tc.arguments }})</span>
+                              <span class="tool-status">{{ tc.status === 'calling' ? 'calling...' : 'done' }}</span>
+                            </div>
+                            <div class="tool-call-body" v-if="tc.result">
+                              <pre class="tool-result">{{ formatToolResult(tc.result) }}</pre>
+                            </div>
                           </div>
-                          <div class="thinking-content" v-show="isNodeExpanded(item)">
-                            <pre class="thinking-text">{{ item.thinking }}</pre>
+                          <!-- 思考深度面板 -->
+                          <div
+                            v-if="item.thinking"
+                            class="thinking-collapsible-card"
+                            :class="{ collapsed: !isNodeExpanded(item) }"
+                            @click="toggleNodeExpand(item)"
+                          >
+                            <div class="thinking-header">
+                              <svg class="icon brain-icon" style="width: 12px; height: 12px; color: var(--blue)"><use href="#file-code" /></svg>
+                              <span>思考深度</span>
+                              <span class="collapse-icon">{{ !isNodeExpanded(item) ? 'expand +' : 'collapse -' }}</span>
+                            </div>
+                            <div class="thinking-content" v-show="isNodeExpanded(item)">
+                              <pre class="thinking-text">{{ item.thinking }}</pre>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 工具调用展示 -->
+                    <div v-if="toolCalls && toolCalls.length > 0" class="ai-tool-calls">
+                      <div class="tool-calls-title">
+                        <svg class="icon" style="width: 12px; height: 12px; margin-right: 4px"><use href="#terminal" /></svg>
+                        <span>工具调用</span>
+                      </div>
+                      <div class="tool-calls-list">
+                        <div v-for="tc in toolCalls" :key="tc.id" class="tool-call-item" :class="tc.status">
+                          <div class="tool-call-header">
+                            <svg v-if="tc.status === 'calling'" class="icon loader-spin" style="width: 12px; height: 12px; margin-right: 4px; color: var(--blue)"><use href="#refresh" /></svg>
+                            <svg v-else class="icon check" style="width: 12px; height: 12px; margin-right: 4px; color: var(--green)"><use href="#check" /></svg>
+                            <span class="tool-name">{{ tc.name }}</span>
+                            <span class="tool-status-text" v-if="tc.status === 'calling'">执行中...</span>
+                          </div>
+                          <div class="tool-call-args" v-if="tc.arguments">
+                            {{ tc.arguments.length > 100 ? tc.arguments.slice(0, 100) + '...' : tc.arguments }}
                           </div>
                         </div>
                       </div>
@@ -665,8 +743,7 @@ onMounted(() => {
                 </div>
               </div>
               <div v-if="activeFile?.content" class="editor-code">
-                <div class="line-numbers">{{ activeFile.content.split('\n').map((_, i) => i + 1).join('\n') }}</div>
-                <pre class="code-lines"><code>{{ activeFile.content }}</code></pre>
+                <n-code :code="activeFile.content" :language="(activeFile.language || 'typescript').toLowerCase()" show-line-numbers />
               </div>
               <div v-else style="padding: 32px; color: var(--muted); font-size: 12px; text-align: center">
                 选择左侧文件树中的文件以查看代码
@@ -841,14 +918,106 @@ onMounted(() => {
   font-weight: normal;
 }
 .thinking-content {
-  overflow-x: auto;
+  overflow-x: hidden;
+  overflow-y: auto;
   max-height: 250px;
 }
 .thinking-text {
   margin: 0;
   white-space: pre-wrap;
+  word-break: break-all;
   font-family: Menlo, Monaco, Consolas, Courier New, monospace;
   font-size: 11px;
   line-height: 1.5;
+}
+
+/* ---- 工具调用卡片 (Claude Code style) ---- */
+.node-detail-area {
+  margin: 0 12px 8px 12px;
+}
+.tool-call-card {
+  margin-bottom: 6px;
+  border-radius: 6px;
+  border: 1px solid #e8ecf1;
+  background: #fafbfc;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+.tool-call-card.calling {
+  border-left: 3px solid #f0a030;
+  background: #fffbf0;
+}
+.tool-call-card.done {
+  border-left: 3px solid #22c55e;
+  background: #f6fdf9;
+}
+.tool-call-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 10px;
+  font-size: 12px;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+}
+.tool-icon {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.tool-icon.spinning {
+  animation: spin 1s linear infinite;
+}
+
+.tool-name {
+  font-weight: 600;
+  color: #334155;
+}
+.tool-args {
+  color: #94a3b8;
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 200px;
+}
+.tool-status {
+  margin-left: auto;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+}
+.tool-call-body {
+  padding: 4px 10px 8px 30px;
+}
+.tool-result {
+  margin: 0;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #475569;
+  white-space: pre-wrap;
+  word-break: break-word;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-family: 'SF Mono', 'Fira Code', monospace;
+  max-height: 150px;
+  overflow-y: auto;
+}
+
+/* ---- 流式光标动画 ---- */
+@keyframes blink-caret {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+.streaming-cursor::after {
+  content: '|';
+  animation: blink-caret 1.2s step-end infinite;
+  color: #00aab3;
+  font-weight: 100;
+  margin-left: 1px;
+}
+.streaming-text {
+  white-space: pre-wrap;
 }
 </style>

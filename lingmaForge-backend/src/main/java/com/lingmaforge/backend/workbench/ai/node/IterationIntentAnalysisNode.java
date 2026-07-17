@@ -48,9 +48,6 @@ public class IterationIntentAnalysisNode extends AbstractCodeGenNode {
             String prompt = state.iterationPrompt().or(() -> state.prompt()).orElse("");
             String projectContext = state.iterationContext().orElse("");
             IterationIntent intent = iterationAgent.analyzeIntent(prompt, projectContext);
-            if (emitter != null) {
-                emitter.emitNode(NODE_NAME, "已识别修改意图：" + intent.summary(), "TEXT");
-            }
             return Map.of(CodeGenState.ITERATION_INTENT, intent);
         } finally {
             completeNode(emitter, NODE_NAME);

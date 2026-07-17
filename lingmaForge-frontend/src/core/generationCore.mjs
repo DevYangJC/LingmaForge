@@ -64,6 +64,7 @@ function cloneState(state) {
     snapshots: { ...state.snapshots },
     nodeThinkings: { ...state.nodeThinkings },
     visibleNodeNames: [...(state.visibleNodeNames || [])],
+    toolCalls: [...(state.toolCalls || [])],
   }
 }
 
@@ -129,6 +130,7 @@ export function createInitialWorkbenchState(taskId = '', prompt = '') {
     snapshots: {},
     nodeThinkings: {},
     visibleNodeNames: [],
+    toolCalls: [],
   }
 }
 
@@ -205,14 +207,19 @@ export function reducePipelineNodeStart(currentState, data) {
   return state
 }
 function appendAssistantMessage(state, msg) {
-  state.chatMessages.push({
-    id: nextId('msg'),
-    role: 'assistant',
-    content: msg.text,
-    contentType: msg.textType === 'MARK_DOWN' ? 'MARK_DOWN' : msg.textType || 'TEXT',
-    timestamp: now(),
-    nodeName: msg.nodeName,
-  })
+  const lastMsg = state.chatMessages[state.chatMessages.length - 1]
+  if (lastMsg && lastMsg.role === 'assistant' && lastMsg.nodeName === msg.nodeName) {
+    lastMsg.content += msg.text
+  } else {
+    state.chatMessages.push({
+      id: nextId('msg'),
+      role: 'assistant',
+      content: msg.text,
+      contentType: msg.textType === 'MARK_DOWN' ? 'MARK_DOWN' : msg.textType || 'TEXT',
+      timestamp: now(),
+      nodeName: msg.nodeName,
+    })
+  }
 }
 
 function appendLog(state, source, message, level = 'info') {
@@ -265,7 +272,7 @@ export function reduceGenerationMessage(currentState, msg) {
     state.checklist[msg.nodeName] = 'done'
   }
 
-  if (msg.nodeName !== 'build_verification') appendAssistantMessage(state, msg)
+  if (msg.nodeName !== 'build_verification' && msg.text && msg.text.trim()) appendAssistantMessage(state, msg)
 
   if (msg.nodeName === 'execution_planning' || msg.nodeName === 'code_generation') {
     const nextFiles = extractFilesFromMessage(msg)

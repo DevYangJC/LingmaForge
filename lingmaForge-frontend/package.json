@@ -18,6 +18,7 @@
   "dependencies": {
     "@iconify-json/vscode-icons": "^1.2.65",
     "@iconify/vue": "^5.0.1",
+    "highlight.js": "^11.11.1",
     "naive-ui": "^2.44.1",
     "pinia": "^3.0.4",
     "splitpanes": "^4.1.2",

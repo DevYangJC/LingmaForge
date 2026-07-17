@@ -1,7 +1,10 @@
 package com.lingmaforge.backend.workbench.ai.node;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,8 +49,7 @@ public class BuildVerificationNode extends AbstractCodeGenNode {
         GenerationStreamEmitter emitter = setupContext(state, NODE_NAME, "正在进行代码构建与类型验证...");
         Long projectId = projectId(state);
         try {
-            emitter.emitLog("安装依赖包... (npm install)");
-            BuildResult result = sandboxService.npmBuild(projectId);
+            BuildResult result = sandboxService.npmBuild(projectId, emitter::emitLog);
             int buildSeconds = (int) (result.durationMillis() / 1000);
 
             Map<String, Object> updates = new HashMap<>();
@@ -57,7 +59,8 @@ public class BuildVerificationNode extends AbstractCodeGenNode {
                 updates.put(CodeGenState.BUILD_TIME, buildSeconds);
                 updates.put(CodeGenState.BUILD_ERROR, null);
             } else {
-                String error = result.error() == null ? result.output() : result.error();
+                String rawError = result.error() == null ? result.output() : result.error();
+                String error = summarizeBuildError(rawError);
                 emitter.emitLog("构建失败: " + error);
                 int retryCount = state.retryCount().orElse(0) + 1;
                 updates.put(CodeGenState.BUILD_STATUS, BuildStatus.FAILED);
@@ -76,5 +79,58 @@ public class BuildVerificationNode extends AbstractCodeGenNode {
         } finally {
             completeNode(emitter, NODE_NAME);
         }
+    }
+
+    /**
+     * 把 npm 构建输出裁剪为 LLM 能理解的关键错误摘要。
+     *
+     * <p>npm 构建输出通常 1000+ 行，直接注入 prompt 会让 LLM 无法定位问题。
+     * 本方法只保留：包含文件名路径的行、包含 'error'/'Error'/'ERROR' 的行、
+     * 'Could not resolve' / 'Module not found' 等关键短语、以及最后 3 行。</p>
+     */
+    static String summarizeBuildError(String raw) {
+        if (raw == null || raw.isBlank()) return "构建失败（无错误输出）";
+
+        Pattern errorLine = Pattern.compile("(?i)(error|fail|could not resolve|module not found|cannot find|is not a module|unexpected token|unknown word|syntax error|type.*error|missing.*export)");
+        Pattern pathLine = Pattern.compile("\\S+\\.(vue|ts|tsx|js|jsx|css|scss|json|html)[:\\d:]*");
+
+        List<String> important = new ArrayList<>();
+        String[] lines = raw.split("\n");
+        int limit = Math.min(lines.length, 200);
+
+        for (int i = 0; i < limit; i++) {
+            String line = lines[i].trim();
+            if (line.isEmpty()) continue;
+
+            boolean isError = errorLine.matcher(line).find();
+            boolean hasPath = pathLine.matcher(line).find();
+
+            if (isError || hasPath) {
+                if (line.length() > 300) line = line.substring(0, 300) + "...";
+                important.add(line);
+            }
+        }
+
+        // 保留最后 3 行（通常是 npm 的总结信息）
+        int lastStart = Math.max(0, lines.length - 3);
+        for (int i = lastStart; i < lines.length; i++) {
+            String line = lines[i].trim();
+            if (!line.isEmpty() && !important.contains(line)) {
+                if (line.length() > 300) line = line.substring(0, 300) + "...";
+                important.add(line);
+            }
+        }
+
+        if (important.isEmpty()) {
+            // 真找不到错误详情，返回前 10 行
+            StringBuilder fallback = new StringBuilder("构建失败，以下是前几行输出：\n");
+            for (int i = 0; i < Math.min(10, lines.length); i++) {
+                fallback.append(lines[i]).append('\n');
+            }
+            return fallback.toString();
+        }
+
+        // 去重 + 限制总长度
+        return String.join("\n", important.stream().distinct().toList());
     }
 }

@@ -34,7 +34,8 @@ public class PromptTemplateLoader {
             String template = resource.getContentAsString(StandardCharsets.UTF_8);
             String rendered = template;
             for (Map.Entry<String, String> entry : variables.entrySet()) {
-                rendered = rendered.replace("{{%s}}".formatted(entry.getKey()), entry.getValue());
+                String value = entry.getValue() == null ? "" : entry.getValue();
+                rendered = rendered.replace("{{%s}}".formatted(entry.getKey()), value);
             }
             return rendered;
         } catch (IOException exception) {

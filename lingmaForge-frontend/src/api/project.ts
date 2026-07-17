@@ -1,5 +1,5 @@
 import { request } from './request'
-import type { FileNode } from '@/core/generationCore.mjs'
+import type { FileNode, ChatMessage } from '@/core/generationCore.mjs'
 
 export interface ProjectResponse {
   id: number | string
@@ -28,5 +28,8 @@ export const projectApi = {
   },
   saveFile(projectId: string | number, path: string, content: string) {
     return request<void>(`/projects/${projectId}/file`, { method: 'PUT', body: { path, content } })
+  },
+  getMessages(projectId: string | number) {
+    return request<ChatMessage[]>(`/projects/${projectId}/messages`)
   },
 }

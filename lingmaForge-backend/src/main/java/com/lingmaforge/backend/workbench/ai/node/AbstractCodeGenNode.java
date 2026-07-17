@@ -96,4 +96,39 @@ public abstract class AbstractCodeGenNode {
     protected Long projectId(CodeGenState state) {
         return parseProjectId(state);
     }
+
+    /**
+     * 清理 LLM 返回的 JSON 字符串，剥离 markdown 代码块和多余的杂质字符。
+     *
+     * @param raw 原始字符串
+     * @return 清理后的 JSON 字符串
+     */
+    protected String cleanJsonString(String raw) {
+        if (raw == null) {
+            return "";
+        }
+        String cleaned = raw.trim();
+        // 1. 去掉 markdown 代码块包裹 (e.g. ```json ... ```)
+        if (cleaned.startsWith("```")) {
+            int firstNewline = cleaned.indexOf('\n');
+            if (firstNewline != -1) {
+                cleaned = cleaned.substring(firstNewline + 1);
+            } else {
+                cleaned = cleaned.substring(3);
+            }
+            if (cleaned.endsWith("```")) {
+                cleaned = cleaned.substring(0, cleaned.length() - 3);
+            }
+            cleaned = cleaned.trim();
+        }
+        
+        // 2. 如果还有前导/尾随的垃圾字符，定位到第一个 '{' 和最后一个 '}'
+        int start = cleaned.indexOf('{');
+        int end = cleaned.lastIndexOf('}');
+        if (start != -1 && end != -1 && end > start) {
+            cleaned = cleaned.substring(start, end + 1);
+        }
+        return cleaned;
+    }
 }
+

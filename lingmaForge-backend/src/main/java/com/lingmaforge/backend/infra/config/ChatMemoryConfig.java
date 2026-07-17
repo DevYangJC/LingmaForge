@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Configuration;
 import com.lingmaforge.backend.workbench.ai.memory.CompactingChatMemoryStore;
 import com.lingmaforge.backend.workbench.ai.memory.ContextCompactionService;
 import com.lingmaforge.backend.workbench.ai.memory.InMemoryChatMemoryStore;
+import com.lingmaforge.backend.workbench.ai.memory.SanitizingChatMemoryStore;
 
 import dev.langchain4j.memory.chat.MessageWindowChatMemory;
 import dev.langchain4j.model.chat.ChatModel;
@@ -48,7 +49,7 @@ public class ChatMemoryConfig {
 
     @Bean
     public CompactingChatMemoryStore compactingChatMemoryStore(InMemoryChatMemoryStore inMemoryStore) {
-        return new CompactingChatMemoryStore(inMemoryStore);
+        return new CompactingChatMemoryStore(new SanitizingChatMemoryStore(inMemoryStore));
     }
 
     /**

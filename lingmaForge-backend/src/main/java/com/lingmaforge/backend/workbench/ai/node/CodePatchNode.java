@@ -7,6 +7,7 @@ import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.lingmaforge.backend.workbench.ai.factory.AgentFactory;
@@ -47,6 +48,7 @@ public class CodePatchNode extends AbstractCodeGenNode {
     private final ContextCompactionService compactionService;
     private final java.util.function.Function<String, MessageWindowChatMemory> chatMemoryProvider;
 
+    @Autowired
     public CodePatchNode(AgentFactory agentFactory,
             GenerationStreamRegistry streamRegistry,
             PlanTracker planTracker,
@@ -55,8 +57,26 @@ public class CodePatchNode extends AbstractCodeGenNode {
             StreamingBridge streamingBridge,
             ContextCompactionService compactionService,
             java.util.function.Function<String, MessageWindowChatMemory> chatMemoryProvider) {
+        this(agentFactory.createIterationEditor(),
+                streamRegistry,
+                planTracker,
+                projectService,
+                projectFileService,
+                streamingBridge,
+                compactionService,
+                chatMemoryProvider);
+    }
+
+    public CodePatchNode(IterationEditor editor,
+            GenerationStreamRegistry streamRegistry,
+            PlanTracker planTracker,
+            ProjectService projectService,
+            ProjectFileService projectFileService,
+            StreamingBridge streamingBridge,
+            ContextCompactionService compactionService,
+            java.util.function.Function<String, MessageWindowChatMemory> chatMemoryProvider) {
         super(streamRegistry);
-        this.editor = agentFactory.createIterationEditor();
+        this.editor = editor;
         this.planTracker = planTracker;
         this.projectService = projectService;
         this.projectFileService = projectFileService;
@@ -84,7 +104,6 @@ public class CodePatchNode extends AbstractCodeGenNode {
                     .taskId(taskId)
                     .stopRegistry(getStreamRegistry())
                     .onToken(t -> emitter.emitNode(NODE_NAME, t, "TEXT"))
-                    .onComplete(() -> emitter.emitNode(NODE_NAME, "AI 迭代修改完成", "TEXT"))
                     .build();
 
             String memoryKey = projectId + "_vue-project";

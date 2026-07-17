@@ -7,6 +7,8 @@ import com.lingmaforge.backend.workbench.entity.ProjectEntity;
 import com.lingmaforge.backend.common.model.CreateProjectRequest;
 import com.lingmaforge.backend.common.model.ProjectContext;
 import com.lingmaforge.backend.common.model.UpdateProjectRequest;
+import com.lingmaforge.backend.workbench.entity.ChatMessageEntity;
+import java.util.List;
 
 /**
  * 项目领域服务契约。
@@ -63,4 +65,12 @@ public interface ProjectService extends IService<ProjectEntity> {
      * @param projectId 项目 ID
      */
     void deleteProject(Long projectId);
+
+    /**
+     * 获取项目下的历史对话消息。
+     *
+     * @param projectId 项目 ID
+     * @return 对话消息列表
+     */
+    List<ChatMessageEntity> getChatMessages(Long projectId);
 }

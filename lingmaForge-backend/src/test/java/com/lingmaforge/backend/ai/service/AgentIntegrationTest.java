@@ -10,7 +10,6 @@ import com.lingmaforge.backend.workbench.ai.factory.AgentFactory;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationContext;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter;
 import com.lingmaforge.backend.workbench.ai.service.CodeGenAgent;
-import com.lingmaforge.backend.workbench.ai.service.ExecutionPlanner;
 import com.lingmaforge.backend.workbench.ai.service.IterationAgent;
 import com.lingmaforge.backend.workbench.ai.service.RequirementAnalyzer;
 import com.lingmaforge.backend.workbench.entity.ProjectFileEntity;
@@ -131,8 +130,8 @@ class AgentIntegrationTest {
                     .describedAs("特性列表应包含任务相关操作词")
                     .isTrue();
             assertThat(spec.style()).isNotNull();
-            assertThat(spec.style().theme()).isNotBlank();
-            assertThat(spec.style().themeName()).isNotBlank();
+            assertThat((String) spec.style().theme()).isNotBlank();
+            assertThat((String) spec.style().themeName()).isNotBlank();
 
             log.info("================================================================");
             log.info("  [通过] 测试1/4: 需求分析Agent ({}ms / {}页 / {}API / {}特性 / 主题={})",
@@ -142,79 +141,6 @@ class AgentIntegrationTest {
         }
     }
 
-    @DisplayName("测试二：执行规划 Agent")
-    class ExecutionPlanning {
-
-        @Test
-        @Order(2)
-        @EnabledIfEnvironmentVariable(named = "LINGMA_INTEGRATION_TEST", matches = "true")
-        @DisplayName("需求规格 -> 文件清单 (config在component之前)")
-        void shouldOutputOrderedFilePlan() {
-            String reqPrompt = "Generate a tech blog system with an article list page "
-                    + "(cards, category tags), an article detail page, and an About Me page.";
-
-            log.info("================================================================");
-            log.info("  测试 2/4: 执行规划 Agent (2轮AI调用: 需求分析 + 执行规划)");
-            log.info("----------------------------------------------------------------");
-            log.info("  [第1轮 AI输入] prompt ({} 字): {}", reqPrompt.length(), reqPrompt);
-            log.info("================================================================");
-
-            Instant start = Instant.now();
-            RequirementAnalyzer analyzer = agentFactory.createRequirementAnalyzer();
-            RequirementSpec spec = analyzer.analyze(reqPrompt);
-            log.info("  [第1轮完成] {}ms, appName='{}', pages={}, apis={}",
-                    Duration.between(start, Instant.now()).toMillis(),
-                    spec.appName(), spec.pages().size(), spec.apis().size());
-
-            ExecutionPlanner planner = agentFactory.createExecutionPlanner();
-            String planPrompt = "请规划文件清单：\n应用: " + spec.appName();
-
-            log.info("  [第2轮 AI输入] prompt: '{}'", planPrompt);
-            Instant planStart = Instant.now();
-            PlanResult plan = planner.plan(planPrompt);
-            Duration planElapsed = Duration.between(planStart, Instant.now());
-            Duration totalElapsed = Duration.between(start, Instant.now());
-
-            log.info("  [第2轮完成] {}ms, 总计 {}ms", planElapsed.toMillis(), totalElapsed.toMillis());
-            log.info("----------------------------------------------------------------");
-            log.info("  [AI 输出] {} 个文件 / framework={} / pkg={}",
-                    plan.files().size(), plan.framework(), plan.packageManager());
-            for (int i = 0; i < plan.files().size(); i++) {
-                var f = plan.files().get(i);
-                log.info("    #{}. [{}] {} -- {} (依赖: {})",
-                        i + 1, f.fileType(), f.path(), f.purpose(), f.dependencies());
-            }
-            log.info("  生成顺序: {}, 构建命令: {}", plan.generationOrder(), plan.buildCommands());
-
-            assertThat(plan.framework()).isEqualTo("react-vite-ts");
-            assertThat(plan.files().size()).isGreaterThanOrEqualTo(6);
-            int lastConfig = lastIndexByType(plan, "config");
-            int firstComp = firstIndexByType(plan, "component");
-            if (lastConfig >= 0 && firstComp >= 0) assertThat(lastConfig).isLessThan(firstComp);
-            int lastEntry = lastIndexByType(plan, "entry");
-            int lastNonEntry = lastIndexOfNonType(plan, "entry");
-            if (lastEntry >= 0 && lastNonEntry >= 0) assertThat(lastEntry).isGreaterThan(lastNonEntry);
-            assertThat(plan.generationOrder()).hasSize(plan.files().size());
-
-            log.info("================================================================");
-            log.info("  [通过] 测试2/4: 执行规划Agent (2轮共{}ms / {}文件 / 排序正确)",
-                    totalElapsed.toMillis(), plan.files().size());
-            log.info("================================================================");
-        }
-
-        private int lastIndexByType(PlanResult p, String t) {
-            for (int i = p.files().size()-1; i >= 0; i--) if (t.equals(p.files().get(i).fileType())) return i;
-            return -1;
-        }
-        private int firstIndexByType(PlanResult p, String t) {
-            for (int i = 0; i < p.files().size(); i++) if (t.equals(p.files().get(i).fileType())) return i;
-            return -1;
-        }
-        private int lastIndexOfNonType(PlanResult p, String t) {
-            for (int i = p.files().size()-1; i >= 0; i--) if (!t.equals(p.files().get(i).fileType())) return i;
-            return -1;
-        }
-    }
 
     @DisplayName("测试三：代码生成 Agent")
     class CodeGeneration {

@@ -240,4 +240,11 @@ removeById(projectId);
         }
         return keys;
     }
+
+    @Override
+    public List<ChatMessageEntity> getChatMessages(Long projectId) {
+        return chatMessageMapper.selectList(new LambdaQueryWrapper<ChatMessageEntity>()
+                .eq(ChatMessageEntity::getProjectId, projectId)
+                .orderByAsc(ChatMessageEntity::getCreatedAt));
+    }
 }

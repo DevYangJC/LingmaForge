@@ -60,9 +60,6 @@ private final ProjectService projectService;
                     ? Map.of()
                     : projectFileService.readFiles(projectId, selectedPaths);
             String summary = buildContextSummary(context, selectedPaths, fileContents);
-            if (emitter != null) {
-                emitter.emitNode(NODE_NAME, "已加载 " + selectedPaths.size() + " 个候选文件", "TEXT");
-            }
             return Map.of(CodeGenState.ITERATION_CONTEXT, summary);
         } finally {
             completeNode(emitter, NODE_NAME);

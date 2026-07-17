@@ -2,26 +2,21 @@ package com.lingmaforge.backend.workbench.ai.service;
 
 import com.lingmaforge.backend.common.model.RequirementSpec;
 
+import dev.langchain4j.service.MemoryId;
+import dev.langchain4j.service.TokenStream;
 import dev.langchain4j.service.UserMessage;
 import dev.langchain4j.service.V;
 
 /**
  * 需求分析 Agent 的 AiServices 接口契约。
- *
- * <p>利用 LangChain4j 的 {@code AiServices} 接口模式做结构化输出：
- * 返回类型即结构化类型，框架自动生成 JSON Schema、约束模型输出并反序列化为 {@link RequirementSpec}，
- * 无需手动解析 JSON。</p>
- *
- * <p>system prompt 由 {@code AgentFactory} 通过 {@code systemMessageProvider} 注入。</p>
  */
 public interface RequirementAnalyzer {
 
-    /**
-     * 将用户自然语言需求解析为结构化需求规格。
-     *
-     * @param userPrompt 用户原始需求
-     * @return 结构化需求规格
-     */
+    /** 结构化同步调用（保留用于测试和向后兼容）。 */
     @UserMessage("{{userPrompt}}")
     RequirementSpec analyze(@V("userPrompt") String userPrompt);
+
+    /** 流式调用——通过 TokenStream 推送 thinking token，需手动解析 JSON 结果。 */
+    @UserMessage("{{userPrompt}}")
+    TokenStream analyzeStream(@MemoryId long memoryId, @V("userPrompt") String userPrompt);
 }

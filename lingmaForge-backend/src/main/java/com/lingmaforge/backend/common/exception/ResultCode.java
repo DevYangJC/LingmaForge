@@ -27,7 +27,9 @@ public enum ResultCode {
     /** 项目不存在。 */
     PROJECT_NOT_FOUND(40402, "项目不存在"),
     /** 文件不存在。 */
-    FILE_NOT_FOUND(40403, "文件不存在");
+    FILE_NOT_FOUND(40403, "文件不存在"),
+
+    SYSTEM_ERROR(501, "系统内部异常");
 
     /** 状态码。 */
     private final int code;

@@ -927,6 +927,75 @@
       100% { transform: rotate(360deg); }
     }
 
+    /* Tool Calls Box */
+    .ai-tool-calls {
+      margin-top: 12px;
+      padding: 10px;
+      background: #fcfcfc;
+      border: 1px solid #eef2f6;
+      border-radius: 8px;
+    }
+
+    .tool-calls-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #4a5c6e;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+    }
+
+    .tool-calls-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .tool-call-item {
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #eef2f6;
+      background: #ffffff;
+      font-size: 11px;
+      transition: all 0.2s;
+    }
+
+    .tool-call-item.calling {
+      border-color: rgba(0, 170, 179, 0.3);
+      box-shadow: 0 2px 8px rgba(0, 170, 179, 0.05);
+    }
+
+    .tool-call-header {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      margin-bottom: 4px;
+      color: var(--ink);
+    }
+
+    .tool-name {
+      font-weight: 600;
+      font-family: var(--font-display);
+    }
+
+    .tool-status-text {
+      color: var(--blue);
+      font-size: 10px;
+      margin-left: auto;
+    }
+
+    .tool-call-args {
+      color: var(--muted);
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 10px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      background: #f8fafc;
+      padding: 6px;
+      border-radius: 4px;
+      margin-top: 4px;
+    }
+
     /* Changes indicator block */
     .ai-changes-box {
       margin-top: 12px;
@@ -1302,23 +1371,23 @@
     /* Pinned Code Editor (Bottom portion of Column 3) */
     .code-editor-panel {
       height: 250px;
-      border-top: 1px solid var(--border-panel);
+      border-top: 1px solid #e2e8f0;
       display: flex;
       flex-direction: column;
-      background: var(--editor-bg);
+      background: #fafafa;
       overflow: hidden;
       flex-shrink: 0;
     }
 
     .editor-header {
       height: 38px;
-      background: #0b1118;
+      background: #06080d;
       border-bottom: 1px solid var(--editor-border);
       display: flex;
       align-items: center;
       justify-content: space-between;
       padding: 0 16px;
-      color: #7f91a5;
+      color: #8f95b2;
       font-size: 12px;
       user-select: none;
       flex-shrink: 0;
@@ -1330,7 +1399,7 @@
       gap: 6px;
       font-family: var(--font-display);
       font-weight: 600;
-      color: #cbd9e5;
+      color: #a6accd;
     }
 
     .editor-actions {
@@ -1343,50 +1412,98 @@
       cursor: pointer;
       width: 14px;
       height: 14px;
-      color: #62778c;
+      color: #64748b;
       transition: color 0.15s;
     }
 
     .editor-actions .icon:hover {
-      color: #cbd9e5;
+      color: #a6accd;
     }
 
     .editor-code {
       flex: 1;
       overflow: auto;
-      padding: 12px 0;
-      font-family: Consolas, "Courier New", monospace;
-      font-size: 12.5px;
-      line-height: 1.6;
+      padding: 0 !important;
       display: flex;
-      color: var(--editor-fg);
+      flex-direction: column;
+      background: var(--editor-bg) !important;
+      color: var(--editor-fg) !important;
     }
 
-    .line-numbers {
-      padding: 0 12px 0 16px;
-      text-align: right;
-      color: #3b4b5e;
-      border-right: 1px solid #141c27;
-      user-select: none;
-      flex-shrink: 0;
-      white-space: pre;
+    .editor-code .n-code {
+      display: flex !important;
+      background: transparent !important;
+      font-size: 13.5px !important;
+      font-family: Consolas, Monaco, "Fira Code", monospace !important;
+      line-height: 1.6 !important;
+      padding: 16px 0 !important;
+      color: var(--editor-fg) !important;
     }
 
-    .code-lines {
-      padding-left: 14px;
-      white-space: pre;
-      margin: 0;
-      flex: 1;
+    /* Gutter and line numbers styling */
+    .editor-code .n-code__line-numbers {
+      background: #070a0f !important;
+      color: #4b5263 !important;
+      border-right: 1px solid var(--editor-border) !important;
+      padding: 0 16px 0 12px !important;
+      margin: 0 16px 0 0 !important;
+      text-align: right !important;
+      min-width: 42px !important;
+      user-select: none !important;
+      font-family: inherit !important;
     }
 
-    /* Syntax Highlighting Colors */
-    .keyword { color: var(--editor-keyword); font-weight: 600; }
-    .string { color: var(--editor-string); }
-    .comment { color: var(--editor-comment); font-style: italic; }
-    .type { color: var(--editor-type); }
-    .function { color: var(--editor-function); }
-    .tag { color: var(--editor-tag); }
-    .number { color: var(--editor-number); }
+    .editor-code .__code__ {
+      padding-right: 16px !important;
+      margin: 0 !important;
+      flex: 1 !important;
+      color: var(--editor-fg) !important;
+    }
+
+    /* Syntax Highlighting */
+    .editor-code .hljs {
+      background: transparent !important;
+      padding: 0 !important;
+      color: var(--editor-fg) !important;
+    }
+
+    .editor-code .hljs-comment,
+    .editor-code .hljs-quote {
+      color: var(--editor-comment) !important;
+      font-style: italic !important;
+    }
+    .editor-code .hljs-keyword,
+    .editor-code .hljs-selector-tag,
+    .editor-code .hljs-literal,
+    .editor-code .hljs-section,
+    .editor-code .hljs-link {
+      color: var(--editor-keyword) !important;
+      font-weight: bold !important;
+    }
+    .editor-code .hljs-string,
+    .editor-code .hljs-doctag,
+    .editor-code .hljs-regexp {
+      color: var(--editor-string) !important;
+    }
+    .editor-code .hljs-number,
+    .editor-code .hljs-built_in,
+    .editor-code .hljs-bullet,
+    .editor-code .hljs-symbol {
+      color: var(--editor-number) !important;
+    }
+    .editor-code .hljs-title,
+    .editor-code .hljs-name,
+    .editor-code .hljs-selector-id,
+    .editor-code .hljs-selector-class {
+      color: var(--editor-function) !important;
+    }
+    .editor-code .hljs-type,
+    .editor-code .hljs-attribute {
+      color: var(--editor-type) !important;
+    }
+    .editor-code .hljs-tag {
+      color: var(--editor-tag) !important;
+    }
 
     /* Column 4: 实时预览 */
     .column-preview {

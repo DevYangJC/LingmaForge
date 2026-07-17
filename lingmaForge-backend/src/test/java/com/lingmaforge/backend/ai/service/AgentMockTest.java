@@ -6,7 +6,6 @@ import static org.mockito.Mockito.when;
 import static org.mockito.Mockito.mock;
 
 import com.lingmaforge.backend.workbench.ai.service.CodeGenAgent;
-import com.lingmaforge.backend.workbench.ai.service.ExecutionPlanner;
 import com.lingmaforge.backend.workbench.ai.service.IterationAgent;
 import com.lingmaforge.backend.workbench.ai.service.RequirementAnalyzer;
 import com.lingmaforge.backend.workbench.ai.tool.FileTools;
@@ -141,72 +140,6 @@ class AgentMockTest {
             assertThat(spec.pages().get(0).name()).isEqualTo("Blog");
             assertThat(spec.style().layout()).isEqualTo("responsive");
             log.info("  [OK] 内层Record (PageSpec + StyleSpec) 全部解析正确");
-        }
-    }
-
-    @Nested
-    @DisplayName("执行规划 Agent（结构化输出）")
-    class ExecutionPlannerTests {
-        private ExecutionPlanner planner;
-
-        @BeforeEach
-        void setUp() {
-            when(promptLoader.loadSystemPrompt("execution-planning")).thenReturn("你是一个架构师");
-            planner = AiServices.builder(ExecutionPlanner.class)
-                    .chatModel(chatModel)
-                    .systemMessageProvider(id -> promptLoader.loadSystemPrompt("execution-planning"))
-                    .build();
-            log.info("========== 执行规划Agent Mock初始化 ==========");
-            log.info("  系统提示词: '你是一个架构师', 输出: PlanResult");
-            log.info("=============================================");
-        }
-
-        @Test
-        @DisplayName("模型返回文件清单JSON -> 正确解析为PlanResult")
-        void shouldParsePlanResult() {
-            String json = "{\n"
-                    + "  \"framework\": \"react-vite-ts\",\n"
-                    + "  \"packageManager\": \"npm\",\n"
-                    + "  \"files\": [\n"
-                    + "    {\"path\": \"package.json\", \"purpose\": \"Project config\",\n"
-                    + "     \"fileType\": \"config\", \"dependencies\": [], \"required\": true},\n"
-                    + "    {\"path\": \"src/styles/globals.css\", \"purpose\": \"Global styles\",\n"
-                    + "     \"fileType\": \"style\", \"dependencies\": [], \"required\": true},\n"
-                    + "    {\"path\": \"src/components/PlanCard.tsx\", \"purpose\": \"Plan card component\",\n"
-                    + "     \"fileType\": \"component\", \"dependencies\": [\"src/styles/globals.css\"], \"required\": true},\n"
-                    + "    {\"path\": \"src/App.tsx\", \"purpose\": \"App entry\",\n"
-                    + "     \"fileType\": \"entry\", \"dependencies\": [\"src/components/PlanCard.tsx\"], \"required\": true}\n"
-                    + "  ],\n"
-                    + "  \"generationOrder\": [\"package.json\",\"src/styles/globals.css\",\"src/components/PlanCard.tsx\",\"src/App.tsx\"],\n"
-                    + "  \"buildCommands\": [\"npm install\", \"npm run build\"]\n"
-                    + "}";
-            when(chatModel.chat(any(ChatRequest.class)))
-                    .thenReturn(ChatResponse.builder().aiMessage(AiMessage.from(json)).build());
-
-            log.info("--- 模拟大模型返回 ---");
-            log.info("  用户输入: 'Plan file list', 模拟JSON: {}字符, 4文件", json.length());
-
-            PlanResult plan = planner.plan("Plan file list");
-
-            log.info("--- AiServices反序列化结果 ---");
-            log.info("  framework='{}', pkg='{}', 文件数={}", plan.framework(), plan.packageManager(), plan.files().size());
-            for (int i = 0; i < plan.files().size(); i++) {
-                var f = plan.files().get(i);
-                log.info("    {}. [{}] {} (依赖: {})", i+1, f.fileType(), f.path(), f.dependencies());
-            }
-            log.info("  生成顺序: {}, 构建命令: {}", plan.generationOrder(), plan.buildCommands());
-
-            assertThat(plan.framework()).isEqualTo("react-vite-ts");
-            assertThat(plan.files()).hasSize(4);
-            assertThat(plan.files().get(0).fileType()).isEqualTo("config");
-            assertThat(plan.files().get(1).fileType()).isEqualTo("style");
-            assertThat(plan.files().get(2).fileType()).isEqualTo("component");
-            assertThat(plan.files().get(3).fileType()).isEqualTo("entry");
-            assertThat(plan.files().get(2).dependencies()).contains("src/styles/globals.css");
-            assertThat(plan.generationOrder()).containsExactly(
-                    "package.json", "src/styles/globals.css", "src/components/PlanCard.tsx", "src/App.tsx");
-            log.info("  [OK] JSON -> PlanResult 反序列化正确 (含4个FilePlan内层Record)");
-            log.info("  [OK] 文件类型顺序: config -> style -> component -> entry");
         }
     }
 

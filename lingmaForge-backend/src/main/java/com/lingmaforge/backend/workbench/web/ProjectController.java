@@ -22,6 +22,8 @@ import com.lingmaforge.backend.common.model.FileNode;
 import com.lingmaforge.backend.common.model.ProjectResponse;
 import com.lingmaforge.backend.common.model.UpdateFileRequest;
 import com.lingmaforge.backend.common.model.UpdateProjectRequest;
+import com.lingmaforge.backend.workbench.entity.ChatMessageEntity;
+import com.lingmaforge.backend.workbench.mapper.ChatMessageMapper;
 import com.lingmaforge.backend.workbench.service.ProjectFileService;
 import com.lingmaforge.backend.workbench.service.ProjectService;
 
@@ -36,10 +38,14 @@ public class ProjectController {
 
     private final ProjectService projectService;
     private final ProjectFileService projectFileService;
+    private final ChatMessageMapper chatMessageMapper;
 
-    public ProjectController(ProjectService projectService, ProjectFileService projectFileService) {
+    public ProjectController(ProjectService projectService,
+            ProjectFileService projectFileService,
+            ChatMessageMapper chatMessageMapper) {
         this.projectService = projectService;
         this.projectFileService = projectFileService;
+        this.chatMessageMapper = chatMessageMapper;
     }
 
     /**
@@ -80,6 +86,18 @@ public class ProjectController {
             throw new BusinessException(ResultCode.PROJECT_NOT_FOUND);
         }
         return Result.ok(ProjectResponse.from(project));
+    }
+
+    /**
+     * 查询项目下的历史对话消息。
+     *
+     * @param id 项目 ID
+     * @return 对话消息列表
+     */
+    @GetMapping("/{id}/messages")
+    public Result<List<ChatMessageEntity>> getMessages(@PathVariable Long id) {
+        ensureProjectExists(id);
+        return Result.ok(projectService.getChatMessages(id));
     }
 
     /**
@@ -164,6 +182,7 @@ public class ProjectController {
         projectFileService.deleteFile(id, path);
         return Result.ok(null);
     }
+
 
     private void ensureProjectExists(Long id) {
         if (projectService.getById(id) == null) {

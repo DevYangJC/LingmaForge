@@ -20,4 +20,16 @@ public record PlanResult(
         List<String> buildCommands) implements Serializable {
 
     private static final long serialVersionUID = 1L;
+
+    public PlanResult {
+        if (files == null) {
+            files = List.of();
+        }
+        if (generationOrder == null) {
+            generationOrder = List.of();
+        }
+        if (buildCommands == null) {
+            buildCommands = List.of();
+        }
+    }
 }

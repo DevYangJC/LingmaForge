@@ -45,6 +45,10 @@ public class PreviewDeployNode extends AbstractCodeGenNode {
         Long projectId = projectId(state);
         try {
             SandboxInfo sandbox = sandboxService.startDevServer(projectId);
+            if (sandbox.url() == null) {
+                emitter.emitLog("预览服务启动失败，请稍后手动刷新");
+                return Map.of();
+            }
             projectService.updateBuildResult(projectId, "SUCCESS", sandbox.url());
             emitter.emitLog("开发服务器运行中 " + sandbox.url());
             return Map.of(
