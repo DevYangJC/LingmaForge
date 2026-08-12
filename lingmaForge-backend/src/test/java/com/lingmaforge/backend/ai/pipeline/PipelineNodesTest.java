@@ -20,6 +20,7 @@ import com.lingmaforge.backend.workbench.ai.tool.ProjectContextTools;
 import com.lingmaforge.backend.workbench.service.*;
 import com.lingmaforge.backend.common.model.*;
 import com.lingmaforge.backend.infra.config.LingmaModelsProperties;
+import com.lingmaforge.backend.testutil.StubTokenStream;
 
 import dev.langchain4j.data.message.AiMessage;
 import dev.langchain4j.model.chat.ChatModel;
@@ -764,70 +765,6 @@ class PipelineNodesTest {
             pipeline.errorEnd(state);
             verify(streamEmitter).error(argThat(msg -> msg.contains("npm build failed")));
             log.info("[OK] error_end节点验证通过");
-        }
-    }
-
-    private static class StubTokenStream implements TokenStream {
-        private java.util.function.Consumer<String> partialResponseConsumer;
-        private java.util.function.Consumer<ChatResponse> completeResponseConsumer;
-        private java.util.function.Consumer<dev.langchain4j.model.chat.response.PartialThinking> partialThinkingConsumer;
-        private final String content;
-
-        public StubTokenStream(String content) {
-            this.content = content;
-        }
-
-        @Override
-        public TokenStream onPartialResponse(java.util.function.Consumer<String> consumer) {
-            this.partialResponseConsumer = consumer;
-            return this;
-        }
-
-        @Override
-        public TokenStream onPartialThinking(java.util.function.Consumer<dev.langchain4j.model.chat.response.PartialThinking> consumer) {
-            this.partialThinkingConsumer = consumer;
-            return this;
-        }
-
-        @Override
-        public TokenStream onRetrieved(java.util.function.Consumer<List<dev.langchain4j.rag.content.Content>> consumer) {
-            return this;
-        }
-
-        @Override
-        public TokenStream onToolExecuted(java.util.function.Consumer<dev.langchain4j.service.tool.ToolExecution> consumer) {
-            return this;
-        }
-
-        @Override
-        public TokenStream onCompleteResponse(java.util.function.Consumer<ChatResponse> consumer) {
-            this.completeResponseConsumer = consumer;
-            return this;
-        }
-
-        @Override
-        public TokenStream onError(java.util.function.Consumer<Throwable> consumer) {
-            return this;
-        }
-
-        @Override
-        public TokenStream ignoreErrors() {
-            return this;
-        }
-
-        @Override
-        public void start() {
-            if (partialThinkingConsumer != null) {
-                partialThinkingConsumer.accept(new dev.langchain4j.model.chat.response.PartialThinking("Thinking: Planning layout for " + content.substring(0, Math.min(15, content.length())) + "..."));
-            }
-            if (partialResponseConsumer != null) {
-                partialResponseConsumer.accept(content);
-            }
-            if (completeResponseConsumer != null) {
-                completeResponseConsumer.accept(ChatResponse.builder()
-                        .aiMessage(dev.langchain4j.data.message.AiMessage.from(content))
-                        .build());
-            }
         }
     }
 }

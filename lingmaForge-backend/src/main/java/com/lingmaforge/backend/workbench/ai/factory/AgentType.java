@@ -14,7 +14,8 @@ public enum AgentType {
     CODE_GENERATION(3, "代码生成", "code-generation"),
     STYLE_OPTIMIZATION(4, "样式优化", "style-optimization"),
     ITERATION_MODIFICATION(5, "迭代修改", "iteration-modification"),
-    INTENT_ANALYSIS(6, "意图识别", "intent-detection");
+    INTENT_ANALYSIS(6, "意图识别", "intent-detection"),
+    CHAT_REPLY(7, "闲聊回复", "chat-reply");
 
     /** 顺序 */
     private final int order;

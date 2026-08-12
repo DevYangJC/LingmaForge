@@ -165,6 +165,8 @@ lingma:
       model: deepseek-pro
     intent-detection:
       model: deepseek-flash
+    chat-reply:
+      model: deepseek-flash
 
   # ===========================================================================
   # 构建与沙箱配置（lingma.sandbox）

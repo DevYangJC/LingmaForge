@@ -147,5 +147,7 @@ class AgentTraceTest {
         @Override public void emitThinking(String nodeName, String token) {}
         @Override public void emitFileToken(String path, String token) {}
         @Override public void emitFileComplete(String path) {}
+        @Override public void emitChatToken(String token) {}
+        @Override public void emitChatComplete(String fullResponse) {}
     }
 }

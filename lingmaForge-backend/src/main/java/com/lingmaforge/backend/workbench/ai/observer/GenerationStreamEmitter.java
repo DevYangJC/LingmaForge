@@ -99,4 +99,23 @@ public interface GenerationStreamEmitter {
      * @param path 文件路径
      */
     void emitFileComplete(String path);
+
+    /**
+     * 流式推送闲聊回复的增量 Token。
+     *
+     * <p>由 {@code ChatReplyNode} 在消费 {@code TokenStream.onPartialResponse} 时逐 token 调用，
+     * 经 SSE 以 {@code message} 事件推给前端，{@code nodeName="chat_reply"} 区分。</p>
+     *
+     * @param token 增量文本
+     */
+    void emitChatToken(String token);
+
+    /**
+     * 推送闲聊回复完成事件，携带完整回复文本。
+     *
+     * <p>由 {@code ChatReplyNode} 在流式结束后调用，前端据此渲染最终完整回复。</p>
+     *
+     * @param fullResponse 完整回复文本
+     */
+    void emitChatComplete(String fullResponse);
 }

@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.lingmaforge.backend.workbench.ai.service.ChatReplyAgent;
 import com.lingmaforge.backend.workbench.ai.service.CodeGenAgent;
 import com.lingmaforge.backend.workbench.ai.service.ExecutionPlanner;
 import com.lingmaforge.backend.workbench.ai.service.IntentAnalyzer;
@@ -91,7 +92,6 @@ public class AgentFactory {
 
     // ======================== 模型解析 ========================
 
-    /**
     /**
      * 根据 Agent 类型从配置中解析对应的 ChatModel。
      *
@@ -286,6 +286,21 @@ public class AgentFactory {
         return AiServices.builder(IntentAnalyzer.class)
                 .chatModel(resolveModel(AgentType.INTENT_ANALYSIS))
                 .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.INTENT_ANALYSIS.getType()))
+                .build();
+    }
+
+    /**
+     * 创建闲聊回复 Agent（流式输出，无工具）。
+     *
+     * <p>用便宜模型（deepseek-flash）做闲聊回复，返回 {@link dev.langchain4j.service.TokenStream}
+     * 供调用方逐 token 推送 SSE。镜像 {@link #createCodeGenAgent()} 的流式模式，但无工具。</p>
+     *
+     * @return 闲聊回复 Agent 实例
+     */
+    public ChatReplyAgent createChatReplyAgent() {
+        return AiServices.builder(ChatReplyAgent.class)
+                .streamingChatModel(resolveStreamingModel(AgentType.CHAT_REPLY))
+                .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.CHAT_REPLY.getType()))
                 .build();
     }
 

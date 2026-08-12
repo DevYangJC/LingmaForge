@@ -2,6 +2,7 @@ package com.lingmaforge.backend.ai.dialog;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -27,7 +28,11 @@ import com.lingmaforge.backend.workbench.ai.dialog.DialogState;
 import com.lingmaforge.backend.workbench.ai.dialog.IntentDetectionNode;
 import com.lingmaforge.backend.workbench.ai.dialog.IntentResult;
 import com.lingmaforge.backend.workbench.ai.factory.AgentFactory;
+import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter;
+import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamRegistry;
+import com.lingmaforge.backend.workbench.ai.service.ChatReplyAgent;
 import com.lingmaforge.backend.workbench.ai.service.IntentAnalyzer;
+import com.lingmaforge.backend.testutil.StubTokenStream;
 
 /**
  * DialogRouter 对话图测试。
@@ -42,6 +47,7 @@ class DialogRouterTest {
     private static final Logger log = LoggerFactory.getLogger(DialogRouterTest.class);
 
     @Mock private AgentFactory agentFactory;
+    @Mock private GenerationStreamRegistry streamRegistry;
 
     private DialogRouter router;
 
@@ -51,13 +57,18 @@ class DialogRouterTest {
         // 但其构造器会调用 createIntentAnalyzer()，故需打桩返回一个 mock，
         // 避免 analyzer 字段为 null（防止后续误触发图执行时 NPE）。
         IntentAnalyzer stubAnalyzer = mock(IntentAnalyzer.class);
-        when(agentFactory.createIntentAnalyzer()).thenReturn(stubAnalyzer);
+        lenient().when(agentFactory.createIntentAnalyzer()).thenReturn(stubAnalyzer);
 
-        // 真实节点（桩节点无需 mock，IntentDetectionNode 需 mock AgentFactory）
+        // ChatReplyNode 构造会调用 createChatReplyAgent()，打桩返回 mock agent
+        ChatReplyAgent stubChatAgent = mock(ChatReplyAgent.class);
+        lenient().when(agentFactory.createChatReplyAgent()).thenReturn(stubChatAgent);
+
+        // 真实节点（IntentDetectionNode / ChatReplyNode 需 mock AgentFactory；
+        // delegate 桩节点无需 mock）
         IntentDetectionNode intentDetectionNode = new IntentDetectionNode(agentFactory);
         DelegateCodegenNode delegateCodegenNode = new DelegateCodegenNode();
         DelegateIterateNode delegateIterateNode = new DelegateIterateNode();
-        ChatReplyNode chatReplyNode = new ChatReplyNode();
+        ChatReplyNode chatReplyNode = new ChatReplyNode(agentFactory, streamRegistry);
 
         router = new DialogRouter(
                 intentDetectionNode, delegateCodegenNode,
@@ -241,15 +252,38 @@ class DialogRouterTest {
     class EndToEndExecution {
 
         /**
-         * 构造一个独立于 setUp 的 DialogRouter，其 IntentDetectionNode 注入了指定 analyzer。
-         * 用于验证图能真正跑通 intent_detection → 条件边 → delegate → END。
+         * 构造一个独立于 setUp 的 DialogRouter，其 IntentDetectionNode 注入了指定 analyzer，
+         * 且 ChatReplyNode 注入了返回 StubTokenStream 的 mock agent。
+         *
+         * <p>Phase 2 起 ChatReplyNode 不再是纯桩——它会调用 ChatReplyAgent.reply() 消费
+         * TokenStream 并通过 GenerationStreamRegistry 获取 emitter 推 SSE。测试中：
+         * <ul>
+         *   <li>mock agentFactory.createChatReplyAgent() 返回返回 StubTokenStream 的 mock</li>
+         *   <li>mock streamRegistry.get(dialogId) 返回 mock emitter（允许 null 回退）</li>
+         *   <li>streamRegistry.isStopRequested(dialogId) 默认返回 false</li>
+         * </ul>
          */
         private DialogRouter routerWithAnalyzer(IntentAnalyzer analyzer) throws Exception {
             when(agentFactory.createIntentAnalyzer()).thenReturn(analyzer);
+
+            // ChatReplyAgent mock：reply 返回携带预设回复的 StubTokenStream
+            // （lenient：生成意图路径不会路由到 chat_reply，reply stub 不会被调用）
+            ChatReplyAgent chatAgent = mock(ChatReplyAgent.class);
+            lenient().when(chatAgent.reply(anyString()))
+                    .thenReturn(new StubTokenStream("你好！我是灵码工坊助手。"));
+            when(agentFactory.createChatReplyAgent()).thenReturn(chatAgent);
+
+            // streamRegistry mock：get 返回 mock emitter（让 ChatReplyNode 走流式路径），
+            // isStopRequested 默认 false
+            GenerationStreamEmitter emitter = mock(GenerationStreamEmitter.class);
+            lenient().when(streamRegistry.get(anyString())).thenReturn(emitter);
+            lenient().when(streamRegistry.isStopRequested(anyString())).thenReturn(false);
+
             IntentDetectionNode intentDetectionNode = new IntentDetectionNode(agentFactory);
             DialogRouter r = new DialogRouter(
                     intentDetectionNode, new DelegateCodegenNode(),
-                    new DelegateIterateNode(), new ChatReplyNode());
+                    new DelegateIterateNode(),
+                    new ChatReplyNode(agentFactory, streamRegistry));
             r.init();
             return r;
         }
@@ -271,9 +305,10 @@ class DialogRouterTest {
                     .state();
 
             assertThat(finalState.intent()).hasValue(DialogIntent.CHAT);
+            // Phase 2: ChatReplyNode 走流式路径，DELEGATE_RESULT 为完整回复文本
             assertThat(finalState.delegateResult()).hasValueSatisfying(s ->
-                    assertThat(s).contains("[桩]").contains("Phase 2"));
-            log.info("[OK] 端到端：intent=CHAT, delegateResult 已写入桩结果");
+                    assertThat(s).contains("灵码工坊助手"));
+            log.info("[OK] 端到端：intent=CHAT, delegateResult 已写入流式回复");
         }
 
         @Test

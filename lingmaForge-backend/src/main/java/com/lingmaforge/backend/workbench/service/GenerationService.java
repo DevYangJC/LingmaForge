@@ -28,6 +28,7 @@ import com.lingmaforge.backend.workbench.ai.factory.AgentFactory;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationContext;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamRegistry;
+import com.lingmaforge.backend.workbench.ai.observer.SseStreamEmitter;
 import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenPipeline;
 import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenState;
 import com.lingmaforge.backend.common.exception.BusinessException;
@@ -348,133 +349,6 @@ public class GenerationService {
         StreamContext(String taskId, SseStreamEmitter emitter) {
             this.taskId = taskId;
             this.emitter = emitter;
-        }
-    }
-
-    /**
-     * 基于 SseEmitter 的 GenerationStreamEmitter 实现。
-     */
-    private static class SseStreamEmitter implements GenerationStreamEmitter {
-
-        private final String taskId;
-        private final SseEmitter emitter;
-        private final ObjectMapper objectMapper;
-
-        SseStreamEmitter(String taskId, SseEmitter emitter, ObjectMapper objectMapper) {
-            this.taskId = taskId;
-            this.emitter = emitter;
-            this.objectMapper = objectMapper;
-        }
-
-        @Override
-        public void emitNode(String nodeName, String text, String textType) {
-            send("message", Map.of(
-                    "threadId", taskId,
-                    "nodeName", nodeName,
-                    "text", text,
-                    "textType", textType,
-                    "error", false));
-        }
-
-        @Override
-        public void emitFile(String path, String content, String status) {
-            send("file", Map.of(
-                    "threadId", taskId,
-                    "path", path,
-                    "content", content,
-                    "status", status));
-        }
-
-        @Override
-        public void emitLog(String text) {
-            send("log", Map.of("threadId", taskId, "text", text));
-        }
-
-        @Override
-        public void complete(String url, Integer port, Integer buildTime) {
-            send("complete", Map.of(
-                    "threadId", taskId,
-                    "url", url == null ? "" : url,
-                    "port", port == null ? 0 : port,
-                    "buildTime", buildTime == null ? 0 : buildTime));
-        }
-
-        @Override
-        public void error(String message) {
-            send("error", Map.of(
-                    "threadId", taskId,
-                    "nodeName", "error",
-                    "text", message,
-                    "error", true));
-        }
-
-        @Override
-        public void emitModification(String nodeName, String text, String textType,
-                List<FileModification> modifications) {
-            Map<String, Object> data = new HashMap<>();
-            data.put("threadId", taskId);
-            data.put("nodeName", nodeName);
-            data.put("text", text);
-            data.put("textType", textType);
-            data.put("error", false);
-            data.put("modifications", modifications);
-            send("message", data);
-        }
-
-        @Override
-        public void emitNodeStart(String nodeName, String title) {
-            send("node_start", Map.of(
-                    "threadId", taskId,
-                    "nodeName", nodeName,
-                    "title", title));
-        }
-
-        @Override
-        public void emitNodeEnd(String nodeName) {
-            send("node_end", Map.of(
-                    "threadId", taskId,
-                    "nodeName", nodeName));
-        }
-
-        @Override
-        public void emitThinking(String nodeName, String token) {
-            send("thinking", Map.of(
-                    "threadId", taskId,
-                    "nodeName", nodeName,
-                    "token", token));
-        }
-
-        @Override
-        public void emitFileToken(String path, String token) {
-            send("file_token", Map.of(
-                    "threadId", taskId,
-                    "path", path,
-                    "token", token));
-        }
-
-        @Override
-        public void emitFileComplete(String path) {
-            send("file_complete", Map.of(
-                    "threadId", taskId,
-                    "path", path));
-        }
-
-        private void send(String event, Object data) {
-            try {
-                emitter.send(SseEmitter.event()
-                        .name(event)
-                        .data(objectMapper.writeValueAsString(data), MediaType.APPLICATION_JSON));
-            } catch (IOException | IllegalStateException e) {
-                log.debug("SSE 发送失败（连接可能已关闭）: taskId={}, event={}", taskId, event);
-            }
-        }
-
-        void safeComplete() {
-            try {
-                emitter.complete();
-            } catch (Exception e) {
-                log.debug("SSE complete 异常: taskId={}", taskId);
-            }
         }
     }
 }
