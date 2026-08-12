@@ -74,66 +74,92 @@ class CodeGenPipelineTest {
     @DisplayName("条件路由：构建结果分流")
     class ConditionalRouting {
 
-        @Test
-        @DisplayName("构建成功 -> 路由到预览部署节点")
-        void shouldRouteToPreviewOnSuccess() {
+        /**
+         * 构造一个携带指定构建状态与重试次数的 CodeGenState。
+         */
+        private CodeGenState stateWith(BuildStatus status, int retryCount) {
             Map<String, Object> data = new HashMap<>();
             data.put(CodeGenState.PROMPT, "test");
             data.put(CodeGenState.PROJECT_ID, "1");
             data.put(CodeGenState.TASK_ID, "t1");
-            data.put(CodeGenState.BUILD_STATUS, BuildStatus.SUCCESS);
-            data.put(CodeGenState.RETRY_COUNT, 0);
-            CodeGenState state = new CodeGenState(data);
+            data.put(CodeGenState.BUILD_STATUS, status);
+            data.put(CodeGenState.RETRY_COUNT, retryCount);
+            return new CodeGenState(data);
+        }
+
+        @Test
+        @DisplayName("构建成功 -> 路由到预览部署节点")
+        void shouldRouteToPreviewOnSuccess() {
+            CodeGenState state = stateWith(BuildStatus.SUCCESS, 0);
 
             log.info("--- 模拟构建成功场景 ---");
             log.info("  BUILD_STATUS: SUCCESS, RETRY_COUNT: 0");
             log.info("  期望路由: build_verification -> preview_deploy");
 
-            assertThat(state.buildStatus()).hasValue(BuildStatus.SUCCESS);
-            log.info("  [OK] 路由正确：构建成功 -> 预览部署节点");
+            String route = pipeline.routeAfterBuild(state);
+            assertThat(route).isEqualTo(PreviewDeployNode.NODE_NAME);
+            log.info("  [OK] 路由正确：构建成功 -> 预览部署节点 ({})", route);
         }
 
         @Test
-        @DisplayName("构建失败且未超重试上限 -> 路由到代码生成节点")
-        void shouldRouteToCodeGenOnFailureWithinLimit() {
-            Map<String, Object> data = new HashMap<>();
-            data.put(CodeGenState.PROMPT, "test");
-            data.put(CodeGenState.PROJECT_ID, "1");
-            data.put(CodeGenState.TASK_ID, "t1");
-            data.put(CodeGenState.BUILD_STATUS, BuildStatus.FAILED);
-            data.put(CodeGenState.BUILD_ERROR, "TS2307: Cannot find module");
-            data.put(CodeGenState.RETRY_COUNT, 1);
-            CodeGenState state = new CodeGenState(data);
+        @DisplayName("构建失败且未超重试上限(retry=0) -> 路由到代码生成节点")
+        void shouldRouteToCodeGenOnFirstFailure() {
+            CodeGenState state = stateWith(BuildStatus.FAILED, 0);
 
-            log.info("--- 模拟构建失败（可重试）场景 ---");
-            log.info("  BUILD_STATUS: FAILED, 错误: TS2307: Cannot find module");
-            log.info("  RETRY_COUNT: 1 (上限: 2), 未超限");
+            log.info("--- 模拟构建失败（首次，可重试）场景 ---");
+            log.info("  BUILD_STATUS: FAILED, RETRY_COUNT: 0 (上限: 2)");
             log.info("  期望路由: build_verification -> code_generation (回退重试)");
 
-            assertThat(state.buildStatus()).hasValue(BuildStatus.FAILED);
-            assertThat(state.retryCount().get()).isLessThanOrEqualTo(2);
-            log.info("  [OK] 路由正确：重试次数未超上限 -> 回退到代码生成节点");
+            String route = pipeline.routeAfterBuild(state);
+            assertThat(route).isEqualTo(CodeGenerationNode.NODE_NAME);
+            log.info("  [OK] 路由正确：首次失败 -> 回退到代码生成节点 ({})", route);
         }
 
         @Test
-        @DisplayName("构建失败且超过重试上限 -> 路由到终止节点")
+        @DisplayName("构建失败且未超重试上限(retry=2=上限) -> 路由到代码生成节点")
+        void shouldRouteToCodeGenAtLimitBoundary() {
+            CodeGenState state = stateWith(BuildStatus.FAILED, 2);
+
+            log.info("--- 模拟构建失败（边界，retry=2=max）场景 ---");
+            log.info("  BUILD_STATUS: FAILED, RETRY_COUNT: 2 (上限: 2，未超限)");
+            log.info("  期望路由: build_verification -> code_generation (仍可回退)");
+
+            String route = pipeline.routeAfterBuild(state);
+            assertThat(route).isEqualTo(CodeGenerationNode.NODE_NAME);
+            log.info("  [OK] 路由正确：retry=max 仍未超限 -> 回退到代码生成节点 ({})", route);
+        }
+
+        @Test
+        @DisplayName("构建失败且超过重试上限(retry=3>max=2) -> 路由到终止节点")
         void shouldRouteToErrorEndOnRetryExceeded() {
-            Map<String, Object> data = new HashMap<>();
-            data.put(CodeGenState.PROMPT, "test");
-            data.put(CodeGenState.PROJECT_ID, "1");
-            data.put(CodeGenState.TASK_ID, "t1");
-            data.put(CodeGenState.BUILD_STATUS, BuildStatus.FAILED);
-            data.put(CodeGenState.BUILD_ERROR, "TS2307: Cannot find module");
-            data.put(CodeGenState.RETRY_COUNT, 3);
-            CodeGenState state = new CodeGenState(data);
+            CodeGenState state = stateWith(BuildStatus.FAILED, 3);
 
             log.info("--- 模拟构建失败（超限）场景 ---");
             log.info("  BUILD_STATUS: FAILED, RETRY_COUNT: 3 (上限: 2) -> 已超限");
             log.info("  期望路由: build_verification -> error_end (终止)");
 
-            assertThat(state.buildStatus()).hasValue(BuildStatus.FAILED);
-            assertThat(state.retryCount().get()).isGreaterThan(2);
-            log.info("  [OK] 路由正确：重试次数超限 -> 终止于 error_end");
+            String route = pipeline.routeAfterBuild(state);
+            assertThat(route).isEqualTo(CodeGenPipeline.ERROR_END);
+            log.info("  [OK] 路由正确：重试次数超限 -> 终止于 error_end ({})", route);
+        }
+
+        @Test
+        @DisplayName("构建状态缺失时按失败处理 -> 路由到代码生成节点")
+        void shouldTreatMissingBuildStatusAsFailure() {
+            Map<String, Object> data = new HashMap<>();
+            data.put(CodeGenState.PROMPT, "test");
+            data.put(CodeGenState.PROJECT_ID, "1");
+            data.put(CodeGenState.TASK_ID, "t1");
+            data.put(CodeGenState.RETRY_COUNT, 0);
+            CodeGenState state = new CodeGenState(data);
+
+            log.info("--- 模拟构建状态缺失场景 ---");
+            log.info("  BUILD_STATUS: (缺失), RETRY_COUNT: 0");
+            log.info("  期望路由: routeAfterBuild 回退到 FAILED 分支 -> code_generation");
+
+            String route = pipeline.routeAfterBuild(state);
+            assertThat(route).isEqualTo(CodeGenerationNode.NODE_NAME);
+            log.info("  [OK] 缺失状态按失败处理 -> 回退到代码生成节点 ({})", route);
         }
     }
 }
