@@ -163,6 +163,8 @@ lingma:
       model: deepseek-flash
     iteration-modification:
       model: deepseek-pro
+    intent-detection:
+      model: deepseek-flash
 
   # ===========================================================================
   # 构建与沙箱配置（lingma.sandbox）

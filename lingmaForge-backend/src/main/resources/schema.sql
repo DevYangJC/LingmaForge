@@ -53,9 +53,25 @@ CREATE TABLE IF NOT EXISTS lf_chat_message (
     id              BIGINT PRIMARY KEY,
     project_id      BIGINT       NOT NULL,
     task_id         VARCHAR(64),
+    dialog_id       VARCHAR(64),
     role            VARCHAR(16)  NOT NULL,
     content         CLOB         NOT NULL,
     created_at      TIMESTAMP    NOT NULL
 );
 
 CREATE INDEX IF NOT EXISTS idx_chat_message_project ON lf_chat_message (project_id);
+CREATE INDEX IF NOT EXISTS idx_chat_message_dialog ON lf_chat_message (dialog_id);
+
+-- 对话会话表：一个会话包含多条对话消息，支持同一项目下的多轮独立对话
+CREATE TABLE IF NOT EXISTS lf_dialog (
+    id              BIGINT PRIMARY KEY,
+    dialog_id       VARCHAR(64)  NOT NULL,
+    project_id      BIGINT,
+    title           VARCHAR(200),
+    status          VARCHAR(16)  NOT NULL DEFAULT 'active',
+    created_at      TIMESTAMP    NOT NULL,
+    updated_at      TIMESTAMP    NOT NULL,
+    CONSTRAINT uk_dialog_id UNIQUE (dialog_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dialog_project ON lf_dialog (project_id);

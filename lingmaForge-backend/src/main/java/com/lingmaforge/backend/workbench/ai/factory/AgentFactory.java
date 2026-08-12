@@ -17,6 +17,7 @@ import org.springframework.stereotype.Component;
 
 import com.lingmaforge.backend.workbench.ai.service.CodeGenAgent;
 import com.lingmaforge.backend.workbench.ai.service.ExecutionPlanner;
+import com.lingmaforge.backend.workbench.ai.service.IntentAnalyzer;
 import com.lingmaforge.backend.workbench.ai.service.IterationAgent;
 import com.lingmaforge.backend.workbench.ai.service.RequirementAnalyzer;
 import com.lingmaforge.backend.workbench.ai.service.StyleOptimizationAgent;
@@ -270,6 +271,21 @@ public class AgentFactory {
                 .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.ITERATION_MODIFICATION.getType()))
                 .tools(fileTools, projectContextTools, iterationTools)
                 .maxToolCallingRoundTrips(MAX_TOOL_ROUND_TRIPS)
+                .build();
+    }
+
+    /**
+     * 创建意图识别 Agent（结构化输出，无工具）。
+     *
+     * <p>用便宜模型做三分类（generate_project / modify_code / chat），
+     * 返回 {@link com.lingmaforge.backend.workbench.ai.dialog.IntentResult}。</p>
+     *
+     * @return 意图识别 Agent 实例
+     */
+    public IntentAnalyzer createIntentAnalyzer() {
+        return AiServices.builder(IntentAnalyzer.class)
+                .chatModel(resolveModel(AgentType.INTENT_ANALYSIS))
+                .systemMessageProvider(id -> promptLoader.loadSystemPrompt(AgentType.INTENT_ANALYSIS.getType()))
                 .build();
     }
 

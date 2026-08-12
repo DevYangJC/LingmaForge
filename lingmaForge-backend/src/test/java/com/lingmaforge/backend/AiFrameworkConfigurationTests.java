@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Map;
 
+import com.lingmaforge.backend.workbench.ai.dialog.DialogRouter;
 import com.lingmaforge.backend.workbench.ai.pipeline.CodeGenPipeline;
 import org.junit.jupiter.api.Test;
 import org.slf4j.Logger;
@@ -24,13 +25,16 @@ class AiFrameworkConfigurationTests {
 
     private final ObjectProvider<Map<String, ChatModel>> modelsProvider;
     private final ObjectProvider<CodeGenPipeline> pipelineProvider;
+    private final ObjectProvider<DialogRouter> dialogRouterProvider;
 
     @Autowired
     AiFrameworkConfigurationTests(
             ObjectProvider<Map<String, ChatModel>> modelsProvider,
-            ObjectProvider<CodeGenPipeline> pipelineProvider) {
+            ObjectProvider<CodeGenPipeline> pipelineProvider,
+            ObjectProvider<DialogRouter> dialogRouterProvider) {
         this.modelsProvider = modelsProvider;
         this.pipelineProvider = pipelineProvider;
+        this.dialogRouterProvider = dialogRouterProvider;
     }
 
     @Test
@@ -52,7 +56,15 @@ class AiFrameworkConfigurationTests {
 
         log.info("[OK] CodeGenPipeline Bean 存在");
         log.info("  Graph: {}", pipeline.getCompiledGraph().getGraph(
-                org.bsc.langgraph4j.GraphRepresentation.Type.MERMAID));
+                org.bsc.langgraph4j.GraphRepresentation.Type.MERMAID).content());
+
+        DialogRouter dialogRouter = dialogRouterProvider.getIfAvailable();
+        assertThat(dialogRouter).isNotNull();
+        assertThat(dialogRouter.getCompiledGraph()).isNotNull();
+
+        log.info("[OK] DialogRouter Bean 存在");
+        log.info("  DialogGraph: {}", dialogRouter.getCompiledGraph().getGraph(
+                org.bsc.langgraph4j.GraphRepresentation.Type.MERMAID).content());
         log.info("========================================");
     }
 }

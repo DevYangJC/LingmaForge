@@ -33,6 +33,9 @@ public class ChatMessageEntity {
     /** 关联的生成任务 ID，可空。 */
     private String taskId;
 
+    /** 关联的会话 ID，可空（旧数据无此字段）。对应 lf_dialog.dialog_id。 */
+    private String dialogId;
+
     /** 消息角色：user / assistant。 */
     private String role;
 
