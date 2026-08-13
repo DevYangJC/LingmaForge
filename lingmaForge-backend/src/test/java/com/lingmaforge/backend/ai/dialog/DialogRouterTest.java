@@ -48,6 +48,8 @@ class DialogRouterTest {
 
     @Mock private AgentFactory agentFactory;
     @Mock private GenerationStreamRegistry streamRegistry;
+    @Mock private com.lingmaforge.backend.workbench.service.SandboxService sandboxService;
+    @Mock private com.lingmaforge.backend.workbench.service.ProjectService projectService;
 
     private DialogRouter router;
 
@@ -63,11 +65,17 @@ class DialogRouterTest {
         ChatReplyAgent stubChatAgent = mock(ChatReplyAgent.class);
         lenient().when(agentFactory.createChatReplyAgent()).thenReturn(stubChatAgent);
 
+        // DelegateIterateNode 构造会调用 createIterationAgent()，打桩返回 mock agent
+        com.lingmaforge.backend.workbench.ai.service.IterationAgent stubIterateAgent =
+                mock(com.lingmaforge.backend.workbench.ai.service.IterationAgent.class);
+        lenient().when(agentFactory.createIterationAgent()).thenReturn(stubIterateAgent);
+
         // 真实节点（IntentDetectionNode / ChatReplyNode 需 mock AgentFactory；
         // delegate 桩节点无需 mock）
         IntentDetectionNode intentDetectionNode = new IntentDetectionNode(agentFactory);
         DelegateCodegenNode delegateCodegenNode = new DelegateCodegenNode();
-        DelegateIterateNode delegateIterateNode = new DelegateIterateNode();
+        DelegateIterateNode delegateIterateNode = new DelegateIterateNode(
+                agentFactory, streamRegistry, sandboxService, projectService);
         ChatReplyNode chatReplyNode = new ChatReplyNode(agentFactory, streamRegistry);
 
         router = new DialogRouter(
@@ -282,7 +290,7 @@ class DialogRouterTest {
             IntentDetectionNode intentDetectionNode = new IntentDetectionNode(agentFactory);
             DialogRouter r = new DialogRouter(
                     intentDetectionNode, new DelegateCodegenNode(),
-                    new DelegateIterateNode(),
+                    new DelegateIterateNode(agentFactory, streamRegistry, sandboxService, projectService),
                     new ChatReplyNode(agentFactory, streamRegistry));
             r.init();
             return r;
