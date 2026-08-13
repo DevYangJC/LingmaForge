@@ -22,7 +22,10 @@ import com.lingmaforge.backend.workbench.ai.dialog.DialogRouter;
 import com.lingmaforge.backend.workbench.ai.dialog.DialogState;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamEmitter;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamRegistry;
+import com.lingmaforge.backend.workbench.service.ProjectService;
+import com.lingmaforge.backend.workbench.service.SandboxService;
 import com.lingmaforge.testconfig.StubChatAgentConfig;
+import com.lingmaforge.testconfig.StubIterateAgentConfig;
 
 /**
  * 闲聊对话端到端集成测试。
@@ -169,6 +172,129 @@ class ChatFlowIntegrationTest {
         }
     }
 
+    /**
+     * 场景三：迭代修改端到端（Mock 模型 + 构建成功）。
+     *
+     * <p>用 {@link StubIterateAgentConfig} 覆盖 {@link AgentFactory}：意图固定 {@code MODIFY_CODE}、
+     * {@code IterationAgent.modify} 返回 "修改完成"。用 {@code @MockBean} 覆盖真实
+     * {@link SandboxService} 与 {@link ProjectService}，让 {@code npmBuild} 返回 SUCCESS、
+     * {@code getProjectContext} 返回固定上下文。验证 {@code delegateResult} 含修改完成 + 构建通过、
+     * emitter 收到 complete 事件。</p>
+     */
+    @Nested
+    @DisplayName("场景三：迭代修改端到端（Mock 模型 + 构建成功）")
+    @SpringBootTest
+    @Import(StubIterateAgentConfig.class)
+    class IterateSuccessScenario {
+
+        @Autowired private ApplicationContext context;
+
+        @org.springframework.boot.test.mock.mockito.MockBean
+        SandboxService sandboxService;
+
+        @org.springframework.boot.test.mock.mockito.MockBean
+        ProjectService projectService;
+
+        @Test
+        @DisplayName("MODIFY_CODE 意图 → 图执行 → emitter 收到 complete 事件")
+        void shouldIterateEndToEndWithBuildSuccess() {
+            // 安排：mock SandboxService.npmBuild 返回 SUCCESS
+            org.mockito.Mockito.when(sandboxService.npmBuild(100L))
+                    .thenReturn(new com.lingmaforge.backend.common.model.BuildResult(
+                            com.lingmaforge.backend.common.model.BuildStatus.SUCCESS,
+                            "ok", null, 2000L));
+            // 安排：mock ProjectService.getProjectContext 返回固定上下文
+            org.mockito.Mockito.when(projectService.getProjectContext(100L))
+                    .thenReturn(new com.lingmaforge.backend.common.model.ProjectContext(
+                            "vue", java.util.List.of("src/App.vue"), java.util.List.of()));
+
+            DialogRouter router = context.getBean(DialogRouter.class);
+            GenerationStreamRegistry registry = context.getBean(GenerationStreamRegistry.class);
+            CapturingEmitter emitter = new CapturingEmitter();
+            String dialogId = "test-dialog-iterate";
+            registry.register(dialogId, emitter);
+
+            log.info("--- 场景三：迭代修改端到端 ---");
+            Map<String, Object> inputs = Map.of(
+                    DialogState.DIALOG_ID, dialogId,
+                    DialogState.USER_MESSAGE, "把首页改成蓝色",
+                    DialogState.PROJECT_ID, "100");
+
+            var finalState = router.getCompiledGraph().stream(inputs)
+                    .stream()
+                    .reduce((first, second) -> second)
+                    .orElseThrow()
+                    .state();
+
+            assertThat(finalState.intent()).hasValue(DialogIntent.MODIFY_CODE);
+            assertThat(finalState.delegateResult())
+                    .as("DELEGATE_RESULT 应含 IterationAgent 回复 + 构建通过")
+                    .hasValueSatisfying(s -> {
+                        assertThat(s).contains("修改完成");
+                        assertThat(s).contains("构建通过");
+                    });
+            assertThat(emitter.completeBuildTimes)
+                    .as("应收到一个 complete 事件")
+                    .hasSize(1);
+            assertThat(emitter.errors)
+                    .as("不应有错误事件")
+                    .isEmpty();
+
+            log.info("[OK] 场景三：intent=MODIFY_CODE, delegateResult 含修改完成+构建通过, complete 事件已收到");
+            registry.unregister(dialogId);
+        }
+    }
+
+    /**
+     * 场景四：迭代修改 NoOp 降级（回退为闲聊失败）。
+     *
+     * <p>使用真实 Spring 上下文（无 API Key → NoOpModel）。意图识别在 {@code IntentDetectionNode}
+     * 被捕获兜底为 CHAT（NoOpModel 抛异常）→ 路由到 {@code chat_reply} 而非 {@code delegate_iterate}。
+     * 故此场景验证端到端降级：无 API Key 时整条对话链路不崩溃，最终回退为 CHAT 闲聊失败路径。</p>
+     */
+    @Nested
+    @DisplayName("场景四：迭代修改 NoOp 降级（回退为闲聊失败）")
+    @SpringBootTest
+    class IterateNoOpFallbackScenario {
+
+        @Autowired private ApplicationContext context;
+
+        @Test
+        @DisplayName("无 API Key → 意图识别兜底 CHAT → 闲聊 NoOp 失败 → 图不崩溃")
+        void shouldFallbackToChatOnNoOpModel() {
+            DialogRouter router = context.getBean(DialogRouter.class);
+            GenerationStreamRegistry registry = context.getBean(GenerationStreamRegistry.class);
+            CapturingEmitter emitter = new CapturingEmitter();
+            String dialogId = "test-dialog-iterate-noop";
+            registry.register(dialogId, emitter);
+
+            log.info("--- 场景四：迭代修改 NoOp 降级 ---");
+            Map<String, Object> inputs = Map.of(
+                    DialogState.DIALOG_ID, dialogId,
+                    DialogState.USER_MESSAGE, "把首页改成蓝色",
+                    DialogState.PROJECT_ID, "100");
+
+            var finalState = router.getCompiledGraph().stream(inputs)
+                    .stream()
+                    .reduce((first, second) -> second)
+                    .orElseThrow()
+                    .state();
+
+            // NoOpModel 让意图识别异常 → 兜底 CHAT → 路由到 chat_reply → 闲聊 NoOp 失败
+            assertThat(finalState.intent()).hasValue(DialogIntent.CHAT);
+            assertThat(finalState.delegateResult())
+                    .as("降级时 DELEGATE_RESULT 应含失败")
+                    .hasValueSatisfying(s -> assertThat(s).contains("失败"));
+            assertThat(emitter.errors)
+                    .as("应收到至少一个错误事件")
+                    .isNotEmpty();
+
+            log.info("[OK] 场景四：NoOp 降级，intent 兜底 CHAT, delegateResult='{}'",
+                    finalState.delegateResult().orElse(""));
+            registry.unregister(dialogId);
+        }
+    }
+
     // ==================== 捕获 SSE 事件的 emitter ====================
 
     /**
@@ -180,6 +306,7 @@ class ChatFlowIntegrationTest {
 
         final List<String> chatTokens = new ArrayList<>();
         final List<String> errors = new ArrayList<>();
+        final List<Integer> completeBuildTimes = new ArrayList<>();
         volatile String completeResponse;
 
         @Override
@@ -197,11 +324,15 @@ class ChatFlowIntegrationTest {
             errors.add(message);
         }
 
+        @Override
+        public void complete(String url, Integer port, Integer buildTime) {
+            completeBuildTimes.add(buildTime);
+        }
+
         // 以下方法本测试不关注，空实现
         @Override public void emitNode(String n, String t, String tt) {}
         @Override public void emitFile(String p, String c, String s) {}
         @Override public void emitLog(String t) {}
-        @Override public void complete(String u, Integer po, Integer bt) {}
         @Override public void emitModification(String n, String t, String tt,
                 List<com.lingmaforge.backend.common.model.FileModification> mods) {}
         @Override public void emitNodeStart(String nodeName, String title) {}
