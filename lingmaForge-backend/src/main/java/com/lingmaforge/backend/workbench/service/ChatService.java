@@ -24,7 +24,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.lingmaforge.backend.common.exception.BusinessException;
 import com.lingmaforge.backend.common.exception.ResultCode;
 import com.lingmaforge.backend.infra.config.AsyncConfig;
-import com.lingmaforge.backend.workbench.ai.dialog.DialogIntent;
 import com.lingmaforge.backend.workbench.ai.dialog.DialogRouter;
 import com.lingmaforge.backend.workbench.ai.dialog.DialogState;
 import com.lingmaforge.backend.workbench.ai.observer.GenerationStreamRegistry;
@@ -208,7 +207,7 @@ public class ChatService {
      * 驱动 DialogRouter 图执行。
      *
      * <p>chat_reply 节点在 execute 内部已推送 token 与 complete 事件，本方法不再重复推送。
-     * 图执行完毕后落库 assistant 回复。非 chat 意图（Phase 2 仍为桩）推一个 complete 兜底。</p>
+     * 图执行完毕后落库 assistant 回复。reply 为空（异常情况）时推 complete 兜底。</p>
      */
     private void runDialog(String dialogId, Long projectId, String userMessage,
             SseStreamEmitter emitter, StreamContext context) {
@@ -233,16 +232,17 @@ public class ChatService {
 
             if (last != null) {
                 String reply = last.state().delegateResult().orElse("");
-                DialogIntent intent = last.state().intent().orElse(DialogIntent.CHAT);
                 // 落库 assistant 回复
                 if (reply != null && !reply.isBlank()) {
                     saveChatMessage(projectId, dialogId, "assistant", reply);
                 }
-                // 非 chat 意图（桩节点）：推一个 complete 兜底，避免前端无限等待
-                if (intent != DialogIntent.CHAT) {
+                // 只有 delegate 节点没自己推过 complete/error 时才兜底。
+                // Phase 2 闲聊：ChatReplyNode 已推 emitChatComplete（message 事件带 complete 标志）；
+                // Phase 3 迭代：DelegateIterateNode 已推 complete/error 事件。
+                // 故这里只在 reply 为空（异常情况）时推 complete 兜底，避免前端无限等待。
+                if (reply == null || reply.isBlank()) {
                     emitter.complete("", 0, 0);
                 }
-                // chat 意图的 complete 事件已由 ChatReplyNode.emitChatComplete 推送，这里不重复
             }
         } catch (Exception e) {
             log.error("[{}] 对话处理失败", dialogId, e);
